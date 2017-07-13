@@ -405,30 +405,47 @@ do_poll_queue(Context) ->
             false;
         Qs ->
             F = fun(Ctx) ->
-                        [ {Id, catch pivot_resource(Id, Ctx)} || {Id,_Serial} <- Qs]
+                    poll_queue_transaction(Qs, [], Ctx)
                 end,
             case z_db:transaction(F, Context) of
+                {rollback, {{abort, {Id, Serial}}, _Stacktrace}} ->
+                    delete_queue([{Id, Serial}], Context);
                 {rollback, PivotError} ->
-                    lager:error("Pivot error: ~p: ~p",
+                    lager:error("Pivot error 3: ~p: ~p",
                                 [PivotError, Qs]);
-                L when is_list(L) ->
-                    lists:map(fun({Id, _Serial}) ->
-                                    IsA = m_rsc:is_a(Id, Context),
-                                    z_notifier:notify(#rsc_pivot_done{id=Id, is_a=IsA}, Context),
-                                    % Flush the resource, as some synthesized attributes might depend on the pivoted fields.
-                                    % @todo Only do this if some fields are changed
-                                    m_rsc_update:flush(Id, Context)
-                              end, Qs),
-                    lists:map(fun({_Id, ok}) -> ok;
-                                 ({Id,Error}) -> log_error(Id, Error, Context) end,
-                              L),
-                    delete_queue(Qs, Context)
+                Ids when is_list(Ids) ->
+                    lists:foreach(
+                        fun({Id, _Serial, _Result}) ->
+                            IsA = m_rsc:is_a(Id, Context),
+                            z_notifier:notify(#rsc_pivot_done{id = Id, is_a = IsA}, Context),
+                            % Flush the resource, as some synthesized attributes might depend on the pivoted fields.
+                            m_rsc_update:flush(Id, Context)
+                        end,
+                        Ids
+                    ),
+                    delete_queue([{Id, Serial} || {Id, Serial, ok} <- Ids], Context),
+                    delete_queue([{Id, Serial} || {Id, Serial, drop} <- Ids], Context),
+                    delay_queue([{Id, Serial} || {Id, Serial, delay} <- Ids], Context)
             end,
             true
     end.
 
-log_error(Id, Error, _Context) ->
-    lager:warning("Pivot error ~p: ~p", [Id, Error]).
+poll_queue_transaction([], Acc, _Context) ->
+    lists:reverse(Acc);
+poll_queue_transaction([{Id, Serial} | Ids], Acc, Context) ->
+    try
+        pivot_resource(Id, Context),
+        poll_queue_transaction(Ids, [{Id, Serial, ok} | Acc], Context)
+    catch
+        Error:Message ->
+            lager:error("Pivot error: ~p: ~p ~p", [Id, Error, Message]),
+            case z_db:is_transaction_alive(Context) of
+                true ->
+                    poll_queue_transaction(Ids, [{Id, Serial, delay} | Acc], Context);
+                false ->
+                    throw({abort, {Id, Serial}})
+            end
+    end.
 
 %% @doc Fetch the next task uit de task queue, if any.
 poll_task(Context) ->
@@ -469,9 +486,11 @@ fetch_queue_id(Id, Context) ->
     z_db:q1("select serial from rsc_pivot_queue where rsc_id = $1", [Id], Context).
 
 %% @doc Delete the previously queued ids iff the queue entry has not been updated in the meanwhile
-delete_queue(Qs, Context) ->
+delete_queue([], _Context) ->
+    nop;
+delete_queue(Ids, Context) ->
     F = fun(Ctx) ->
-        [ z_db:q("delete from rsc_pivot_queue where rsc_id = $1 and serial = $2", [Id,Serial], Ctx) || {Id,Serial} <- Qs ]
+        [ z_db:q("delete from rsc_pivot_queue where rsc_id = $1 and serial = $2", [Id,Serial], Ctx) || {Id,Serial} <- Ids ]
     end,
     z_db:transaction(F, Context).
 
@@ -480,6 +499,15 @@ delete_queue(_Id, undefined, _Context) ->
     ok;
 delete_queue(Id, Serial, Context) ->
     z_db:q("delete from rsc_pivot_queue where rsc_id = $1 and serial = $2", [Id,Serial], Context).
+
+delay_queue([], _Context) ->
+    nop;
+delay_queue(Ids, Context) ->
+    F = fun(Ctx) ->
+        [z_db:q("update rsc_pivot_queue set due = due + '1 hour'::interval where rsc_id = $1 and serial = $2", [Id, Serial], Ctx) || {Id, Serial} <- Ids]
+    end,
+    z_db:transaction(F, Context).
+
 
 
 
@@ -976,7 +1004,7 @@ update_custom_pivot(Id, {Module, Columns}, Context) ->
     case Result of
         {ok, _} -> ok;
         {error, Reason} ->
-            lager:error("Error updating custom pivot ~p for ~p (~p): ~p", 
+            lager:error("Error updating custom pivot ~p for ~p (~p): ~p",
                         [Module, Id, z_context:site(Context), Reason])
     end.
 

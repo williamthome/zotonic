@@ -26,13 +26,13 @@
 
 %% interface functions
 -export([
-
+    
     has_connection/1,
-
+    
     transaction/2,
     transaction/3,
     transaction_clear/1,
-
+    
     assoc_row/2,
     assoc_row/3,
     assoc_props_row/2,
@@ -51,19 +51,19 @@
     q1/4,
     q_row/2,
     q_row/3,
-
+    
     squery/2,
     squery/3,
     equery/2,
     equery/3,
     equery/4,
-
+    
     insert/2,
     insert/3,
     update/4,
     delete/3,
     select/3,
-
+    
     columns/2,
     column_names/2,
     update_sequence/3,
@@ -72,12 +72,12 @@
     create_table/3,
     drop_table/2,
     flush/1,
-
+    
     assert_table_name/1,
     prepare_cols/2,
-
+    
     schema_exists_conn/2
-]).
+    , is_transaction_alive/1]).
 
 
 -include_lib("zotonic.hrl").
@@ -147,7 +147,7 @@ transaction1(Function, #context{dbc=undefined} = Context) ->
                         end
                     catch
                         _:Why ->
-                            DbDriver:squery(C, "ROLLBACK", ?TIMEOUT),
+                            catch DbDriver:squery(C, "ROLLBACK", ?TIMEOUT),
                             {rollback, {Why, erlang:get_stacktrace()}}
                     end
               end,
@@ -190,6 +190,14 @@ get_connection(#context{dbc=undefined} = Context) ->
     end;
 get_connection(Context) ->
     Context#context.dbc.
+
+
+%% @doc Is the database transaction process still alive?
+-spec is_transaction_alive(z:context()) -> boolean().
+is_transaction_alive(#context{dbc = undefined}) ->
+    false;
+is_transaction_alive(#context{dbc = Pid}) ->
+    erlang:is_process_alive(Pid).
 
 %% @doc Transaction handler safe function for releasing a db connection
 return_connection(C, Context=#context{dbc=undefined}) ->
