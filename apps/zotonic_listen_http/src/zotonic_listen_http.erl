@@ -221,9 +221,13 @@ cowboy_options() ->
     #{
         middlewares => [ cowmachine_proxy, z_sites_dispatcher, z_cowmachine_middleware ],
         request_timeout => ?HTTP_REQUEST_TIMEOUT,
+        stream_handlers => [cowboy_metrics_h, cowboy_stream_h ],
+        metrics_callback => access_log_callback(),
         env => #{}
     }.
 
+access_log_callback() ->
+    fun(Metrics) -> z_access_syslog:log_access(Metrics) end.
 
 % @doc Copied from cowboy.erl, disable http2 till the cipher problems are resolved.
 -spec start_tls(ranch:ref(), ranch_ssl:opts(), list()) -> {ok, pid()} | {error, any()}.
