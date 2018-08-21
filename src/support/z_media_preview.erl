@@ -201,8 +201,8 @@ size(InFile, Filters, Context) ->
 %% @doc Check if we can generate a preview image of the given mime type
 can_generate_preview(B) when is_binary(B) -> can_generate_preview(binary_to_list(B));
 can_generate_preview("image/" ++ _) -> true;
-can_generate_preview("application/pdf") -> true;
-can_generate_preview("application/postscript") -> true;
+% can_generate_preview("application/pdf") -> true;
+% can_generate_preview("application/postscript") -> true;
 can_generate_preview(_Mime) -> false.
 
 
