@@ -490,7 +490,18 @@ survey_results_prompts(SurveyId, IsForceAnonymous, Context) when is_integer(Surv
                     0 -> [];
                     _ -> [ <<>>, <<>>, <<>> ]
                 end,
-                [ [ P, repeat(<<>>, maybe_length(proplists:get_value(B, Hs, []))-1) ] || {B,P} <- Prompts ]
+                lists:map(
+                    fun({B, P}) ->
+                        case proplists:get_value(B, Hs, []) of
+                            [] ->
+                                % Not a question
+                                [];
+                            BHs ->
+                                % Question with maybe additional columns
+                                [ P, repeat(<<>>, maybe_length(BHs)-1) ]
+                        end
+                    end,
+                    Prompts)
             ]),
             {Hs1, Prompts1, Answers};
         undefined ->
@@ -507,7 +518,7 @@ drop_hidden_results(NQs) ->
         NQs).
 
 maybe_length(L) when is_list(L) -> length(L);
-maybe_length(_) -> 0.
+maybe_length(_) -> 1.
 
 repeat(_B, N) when N =< 0 -> [];
 repeat(B, N) -> [ B | repeat(B,N-1) ].
