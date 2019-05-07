@@ -443,7 +443,7 @@ survey_results(SurveyId, IsAnonymous, Context) ->
     [ Hs | Data ].
 
 %% @doc Return all results of a survey with separate names, prompts and data
-survey_results_prompts(undefined, _IsAnonymous, _Context) ->
+survey_results_prompts(undefined, _IsForceAnonymous, _Context) ->
     {[], [], []};
 survey_results_prompts(SurveyId, IsForceAnonymous, Context) when is_integer(SurveyId) ->
     case get_questions(SurveyId, Context) of
@@ -462,7 +462,7 @@ survey_results_prompts(SurveyId, IsForceAnonymous, Context) when is_integer(Surv
             Hs = [ {B, answer_header(B, MaxPoints, Context)} || {_,B} <- NQs ],
             Prompts = [ {B, z_trans:lookup_fallback(answer_prompt(B), Context)} || {_,B} <- NQs ],
             Hs1 = lists:flatten([
-                case IsForceAnonymous of
+                case IsAnonymous of
                     true -> [ ?__(<<"Date">>, Context) ];
                     false ->
                         [
@@ -482,7 +482,7 @@ survey_results_prompts(SurveyId, IsForceAnonymous, Context) when is_integer(Surv
                 [ H || {_,H} <- Hs ]
             ]),
             Prompts1 = lists:flatten([
-                case IsForceAnonymous of
+                case IsAnonymous of
                     true -> [ <<>> ];
                     false -> [ <<>>, <<>>, <<>> ]
                 end,
