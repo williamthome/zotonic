@@ -507,7 +507,7 @@ drop_hidden_results(NQs) ->
         NQs).
 
 maybe_length(L) when is_list(L) -> length(L);
-maybe_length(_) -> 1.
+maybe_length(_) -> 0.
 
 repeat(_B, N) when N =< 0 -> [];
 repeat(B, N) -> [ B | repeat(B,N-1) ].
