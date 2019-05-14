@@ -284,13 +284,22 @@ logon(Args, WireArgs, Context) ->
                     Vars = [
                         {user_id, UserId},
                         {secret, set_reminder_secret(UserId, Context)},
-                        {username, Username}
+                        {username, Username},
+                        {need_passcode, has_passcode(Context)}
                     ],
                     logon_stage("password_expired", Vars, Context)
             end;
         undefined ->
             lager:warning("Auth module error: #logon_submit{} returned undefined."),
             logon_error("pw", Context)
+    end.
+
+has_passcode(Context) ->
+    case z_context:get_q("passcode", Context) of
+        undefined -> false;
+        "" -> false;
+        <<>> -> false;
+        _ -> true
     end.
 
 %% @doc Send password reminders to everybody with the given email address
@@ -348,9 +357,9 @@ reset(Secret, Username, Context) when is_binary(Username) ->
 reset_1(UserId, Username, Password, Context) ->
     case auth_postcheck(UserId, z_context:get_q_all(Context), Context) of
         ok ->
-            ContextLoggedon = logon_user(UserId, [], Context),
-            case m_identity:set_username_pw(UserId, Username, Password, z_acl:sudo(ContextLoggedon)) of
+            case m_identity:set_username_pw(UserId, Username, Password, z_acl:sudo(Context)) of
                 ok ->
+                    ContextLoggedon = logon_user(UserId, [], Context),
                     delete_reminder_secret(UserId, ContextLoggedon),
                     ContextLoggedon;
                 {error, password_match} ->
