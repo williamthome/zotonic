@@ -23,9 +23,9 @@
 
 render_action(_TriggerId, TargetId, Args, Context) ->
     {Tpl, Context1} = z_template:render_to_iolist(proplists:get_value(template, Args, "_admin_log_row.tpl"), Args, Context),
-    Tpl2 = lists:flatten(z_string:line(erlang:iolist_to_binary(Tpl))),
+    Tpl2 = iolist_to_binary(z_string:line(erlang:iolist_to_binary(Tpl))),
     {[], z_script:add_script(
-           ["$('", z_utils:js_escape(Tpl2), 
+           ["$('", z_utils:js_escape(Tpl2),
             "').hide().prependTo('#", TargetId, "').fadeIn();",
             "$('h3').effect('shake', {direction: 'up', distance: 5, times: 2});"],
            Context1)}.
