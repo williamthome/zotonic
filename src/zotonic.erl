@@ -57,6 +57,7 @@ start() -> start([]).
 %% @doc Start the zotonic server.
 start(_Args) ->
     test_erlang_version(),
+    ensure_mnesia_schema(),
     zotonic_deps:ensure(),    
     case ensure_started(zotonic) of
         ok -> ok;
@@ -108,6 +109,23 @@ status([Node]) ->
 update() ->
     z:m(),
     ok.
+
+%% @doc Ensure that mnesia has created its schema in the configured mnesia directory.
+ensure_mnesia_schema() ->
+    application:load(mnesia),
+    case application:get_env(mnesia, dir) of
+        undefined ->
+            error_logger:info_msg("No mnesia directory defined, running without persistent email queue and filezcache.~n"
+                                  "To enable persistency, add to erlang.config: {mnesia,[{dir,\"priv/mnesia\"}]}~n~n"),
+            ok;
+        {ok, Dir} ->
+            case filelib:is_dir(Dir) andalso filelib:is_regular(filename:join(Dir,"schema.DAT")) of
+                true ->
+                    ok;
+                false ->
+                    ok = mnesia:create_schema([node()])
+            end
+    end.
 
 
 %% @spec update([Node]) -> ok

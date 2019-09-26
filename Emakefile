@@ -21,6 +21,7 @@
  [  {i, "include"},
     {i, "src/dbdrivers/postgresql/include"},
     {i, "deps/webzmachine/include"},
+    {d, namespaced_dicts},
     {outdir, "ebin"},
     {parse_transform, lager_transform},
     debug_info

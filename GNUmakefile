@@ -3,6 +3,14 @@ ERLC      ?= $(ERL)c
 APP       := zotonic
 PARSER    := src/erlydtl/erlydtl_parser
 
+use_locked_config = $(wildcard USE_REBAR_LOCKED)
+ifeq ($(use_locked_config),USE_REBAR_LOCKED)
+  rebar_config = rebar.config.lock
+else
+  rebar_config = rebar.config
+endif
+REBAR_OPTS = -C $(rebar_config)
+
 # Erlang Rebar downloading
 # see: https://groups.google.com/forum/?fromgroups=#!topic/erlang-programming/U0JJ3SeUv5Y
 REBAR := ./rebar
@@ -40,10 +48,10 @@ ebin/$(APP).app: src/$(APP).app.src
 .PHONY: get-deps update-deps compile-deps compile-zotonic compile
 
 get-deps: $(REBAR)
-	$(REBAR) get-deps
+	$(REBAR) $(REBAR_OPTS) get-deps
 
 update-deps: $(REBAR)
-	$(REBAR) update-deps
+	$(REBAR) $(REBAR_OPTS) update-deps
 
 compile-deps: $(REBAR)
 	if [ -d $(LAGER) ]; then $(call Compile, $(LAGER)); fi
