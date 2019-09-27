@@ -130,7 +130,7 @@ find_select([_|Rest], Name) ->
 result_title([], Acc) ->
      lists:reverse(Acc);
 result_title([{input, _, _}|Parts], Acc) ->
-     result_title(Parts, ["…"|Acc]);
+     result_title(Parts, ["..."|Acc]);
 result_title([{html, _, Html}|Parts], Acc) ->
      result_title(Parts, [Html|Acc]);
 result_title([{select, Name, _}|Parts], Acc) ->

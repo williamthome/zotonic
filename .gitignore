@@ -3,6 +3,7 @@ zotonic.pid
 zotonic.tmproj
 erl_crash.dump
 rebar
+.rebar
 
 *~
 
@@ -35,5 +36,7 @@ deps/
 /priv/sites/*/files/processing/
 /priv/sites/*/files/unhandled/
 /priv/modules/
+
+/priv/mnesia/
 
 /modules/*/translations/template/*.pot
