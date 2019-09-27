@@ -65,7 +65,7 @@ observe_rsc_update(#rsc_update{id=Id}, {Changed, Props}, Context) ->
                             false
                     end;
                 EmbedCode ->
-                    EmbedCodeRaw = z_html:unescape(EmbedCode),
+                    EmbedCodeRaw = z_sanitize:html(z_html:unescape(EmbedCode), Context),
                     EmbedService = proplists:get_value(video_embed_service, Props, ""),
                     MediaProps = [
                         {mime, ?EMBED_MIME},
