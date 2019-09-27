@@ -34,18 +34,6 @@
 
 -include_lib("zotonic.hrl").
 
-%% @doc Sanitize an HTML element. This is applied using a foldl.
--record(sanitize_element, {
-        element :: {binary(), list(), list()},
-        stack :: list()
-    }).
-
-%% @doc Sanitize an embed url. The hostpart is of the format: <<"youtube.com/v...">>.
-%%      Return 'undefined', 'false' or a binary with a acceptable hostpath
--record(sanitize_embed_url, {
-        hostpath :: binary()
-    }).
-
 uri(Uri) ->
     z_html:sanitize_uri(Uri).
 
