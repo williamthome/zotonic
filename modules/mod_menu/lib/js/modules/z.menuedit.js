@@ -88,7 +88,7 @@ $.widget("ui.menuedit", {
 $.ui.menuedit.defaults = {
 	disableNesting: "ui-nestedSortable-no-nesting",
 	forcePlaceholderSize: true,
-	handle: "div",
+	handle: ".grippy",
 	helper: "clone",
 	items: "li.menu-item",
 	maxLevels: 0,
