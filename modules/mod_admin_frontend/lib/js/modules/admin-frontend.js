@@ -4,9 +4,8 @@ $(function() {
 		z_editor_save($('#rscform'));
 		if ($('#rscform').attr('data-formdirty')) {
 			z_dialog_confirm({
-				ok: z_translate('Discard'),
-				text: '<p>' + z_translate('There are unsaved changes, are you sure you want to navigate away?') + '</p>',
-				is_danger: true,
+				ok: z_translate("Yes, discard changes"),
+				text: '<p>' + z_translate("There are unsaved changes. Are you sure you want to leave without saving?") + '</p>',
 				on_confirm: function() {
 					window.location.hash = hash;
 				}
