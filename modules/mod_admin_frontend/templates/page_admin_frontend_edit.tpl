@@ -108,6 +108,7 @@
 	    "js/modules/z.datepicker.js"
 	    "js/modules/z.menuedit.js"
 	    "js/modules/z.cropcenter.js"
+	    "js/modules/z.formdirty.js"
 	    "js/modules/jquery.shorten.js"
 	    "js/modules/jquery.timepicker.min.js"
 
@@ -119,4 +120,12 @@
 	%}
 	{% all include "_admin_lib_js.tpl" %}
 	{% include "_editor.tpl" is_editor_include %}
+
+	{% javascript %}
+	    window.z_translations = window.z_translations || {};
+	    window.z_translations["Discard"] = "{_ Discard _}";
+	    window.z_translations["There are unsaved changes, are you sure you want to navigate away?"]
+	    	= "{_ There are unsaved changes, are you sure you want to navigate away? _}";
+	{% endjavascript %}
+
 {% endblock %}

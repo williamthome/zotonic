@@ -1,24 +1,41 @@
 
 $(function() {
+	function confirm_unsaved( hash ) {
+		z_editor_save($('#rscform'));
+		if ($('#rscform').attr('data-formdirty')) {
+			z_dialog_confirm({
+				ok: z_translate('Discard'),
+				text: '<p>' + z_translate('There are unsaved changes, are you sure you want to navigate away?') + '</p>',
+				is_danger: true,
+				on_confirm: function() {
+					window.location.hash = hash;
+				}
+			});
+		} else {
+			window.location.hash = hash;
+		}
+	}
+
 	$('body').on("click", "a", function(evt) {
 		var href = $(this).attr('href');
 		var m = href && href.match(/\/(..\/)?admin\/edit\/([0-9]+)$/);
 		if (m) {
-			window.location.hash = "#edit_id="+m[2];
+			confirm_unsaved("#edit_id="+m[2]);
 			evt.preventDefault();
 		}
 	});
 
 	if (typeof pubzub !== "undefined") {
 		pubzub.subscribe("~pagesession/menu/insert", function(topic,args) {
-			window.location.hash = "#edit_id="+args.id;
+			confirm_unsaved("#edit_id="+args.id);
 		});
 	}
 
 	z_event_register("admin-menu-edit", function(args) {
 		for (var i in args) {
 			if (args[i]["name"] == "id") {
-				window.location.hash = "#edit_id="+args[i].value;
+				confirm_unsaved("#edit_id="+args[i].value);
+				break;
 			}
 		}
 	});

@@ -18,7 +18,7 @@
 		postback={rscform view_location=view_location cat=cat id=id}
 		delegate=`controller_admin_edit`
 %}
-<form id="rscform" method="post" action="postback" class="form-horizontal">
+<form id="rscform" method="post" action="postback" class="form-horizontal do_formdirty">
 	<input type="hidden" name="id" value="{{ id }}" />
 
 	<div class="meta-data row-fluid">

@@ -24,6 +24,7 @@
 {% javascript %}
     $("#{{ #block }} .widget").effect("highlight");
     z_admin_ensure_block_names();
+    $("#{{ #block }}").closest('form').trigger('change');
 {% endjavascript %}
 {% endif %}
 

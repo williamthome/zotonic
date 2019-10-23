@@ -1600,6 +1600,7 @@ function z_init_postback_forms()
                 z_queue_postback(form_id, postback, args.concat(validations), false, cookie_form);
             }
             ev.stopPropagation();
+            $(theForm).trigger('z:formSubmit');
             return false;
         };
 
