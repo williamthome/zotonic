@@ -345,6 +345,8 @@ try_set_language(LanguagesRequested, Context) when is_list(LanguagesRequested) -
 
 
 %% @doc Set the language of the current user/session
+set_language(_Code, [], Context) ->
+    Context;
 set_language(Code, [{CodeAtom, _Language}|Other], Context) ->
     case z_convert:to_list(CodeAtom) of
         Code ->   do_set_language(CodeAtom, Context);
