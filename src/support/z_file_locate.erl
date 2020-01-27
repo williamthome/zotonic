@@ -216,12 +216,12 @@ part_file(Filename, Opts) ->
     end.
 
 render(ModuleIndex, Context) ->
-    #part_data{
+    {Data, _Context} = z_template:render_to_iolist(ModuleIndex, [], Context),
+    {ok, #part_data{
         acl=undefined,
         modified=calendar:local_time(),
-        data=iolist_to_binary(z_template:render_to_iolist(ModuleIndex, [], Context))
-    }.
-
+        data=iolist_to_binary(Data)
+    }}.
 
 maybe_generate_preview(Path, OriginalFile, Filters, Medium, Context) ->
     Mime = z_media_identify:guess_mime(OriginalFile),

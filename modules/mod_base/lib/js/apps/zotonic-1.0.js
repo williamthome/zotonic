@@ -265,6 +265,7 @@ function z_dialog_overlay_close( closeButton )
     if ($('.modal-overlay').length == 0) {
         $('body').removeClass('overlay-open');
     }
+    return false;
 }
 
 /* Growl messages
@@ -1053,7 +1054,7 @@ function z_stream_start(host, websocket_host)
 {
     if (!z_session_valid) {
         setTimeout(function() {
-            z_stream_start(_host, websocket_host);
+            z_stream_start(host, websocket_host);
         }, 100);
     } else {
         z_websocket_host = websocket_host || window.location.host;

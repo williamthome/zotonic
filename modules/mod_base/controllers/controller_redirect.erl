@@ -21,6 +21,7 @@
 
 -export([
 	init/1,
+    is_authorized/2,
 	service_available/2,
 	resource_exists/2,
 	previously_existed/2,
@@ -37,8 +38,7 @@ init(DispatchArgs) -> {ok, DispatchArgs}.
 service_available(ReqData, DispatchArgs) when is_list(DispatchArgs) ->
     Context  = z_context:new(ReqData, ?MODULE),
     z_context:lager_md(Context),
-    Context1 = z_context:continue_session(
-        z_context:set(DispatchArgs, z_context:ensure_qs(Context))),
+    Context1 = z_context:ensure_all(z_context:set(DispatchArgs, z_context:ensure_qs(Context))),
     ?WM_REPLY(true, Context1).
 
 resource_exists(ReqData, Context) ->
@@ -46,6 +46,11 @@ resource_exists(ReqData, Context) ->
 
 previously_existed(ReqData, Context) ->
 	{true, ReqData, Context}.
+
+is_authorized(ReqData, Context) ->
+    Context1 = ?WM_REQ(ReqData, Context),
+    z_context:lager_md(Context1),
+    z_controller_helper:is_authorized(Context1).
 
 moved_temporarily(ReqData, Context) ->
     case z_context:get(is_permanent, Context, false) of
@@ -86,7 +91,7 @@ do_redirect(ReqData, Context) ->
 										end, 
 										Args1,
 										z_dispatcher:dispatcher_args()),
-					z_dispatcher:url_for(Dispatch, Args2, Context)
+			        z_html:unescape( z_dispatcher:url_for(Dispatch, Args2, Context) )
 			end;
 		Url ->
 			Url
