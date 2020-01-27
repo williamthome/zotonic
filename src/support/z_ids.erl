@@ -41,7 +41,8 @@
     sign_key_simple/1,
     number/0,
     number/1,
-    fix_seed/0
+    fix_seed/0,
+    rand_bytes/1
 ]).
 
 -record(state, {is_fixed = false, unique_counter = 0}).
@@ -215,7 +216,7 @@ random_list(false, Radix, Length) ->
     not_so_random_list(Radix, Length, []);
 random_list(true, Radix, Length) ->
     N = (radix_bits(Radix) * Length + 7) div 8,
-    Val = bin2int(crypto:rand_bytes(N)),
+    Val = bin2int(rand_bytes(N)),
     int2list(Val, Radix, Length, []).
 
 not_so_random_list(_Radix, 0, Acc) ->
@@ -234,3 +235,16 @@ bin2int(Bin) ->
 radix_bits(N) when N =< 16 -> 4;
 radix_bits(N) when N =< 26 -> 5;
 radix_bits(N) when N =< 64 -> 6.
+
+
+%% @doc Return N random bytes. This falls back to the pseudo random version of rand_uniform
+%% if strong_rand_bytes fails.
+-spec rand_bytes(integer()) -> binary().
+rand_bytes(N) when N > 0 ->
+    try
+        crypto:strong_rand_bytes(N)
+    catch
+        error:low_entropy ->
+            lager:info("Crypto is low on entropy"),
+            list_to_binary([ crypto:rand_uniform(0,256) || _X <- lists:seq(1, N) ])
+    end.
