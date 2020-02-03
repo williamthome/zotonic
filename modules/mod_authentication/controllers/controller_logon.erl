@@ -468,7 +468,20 @@ lookup_by_email(Handle, Context) ->
             [];
         _ ->
             Rows = m_identity:lookup_by_type_and_key_multi(email, Handle, Context),
-            [ proplists:get_value(rsc_id, Row) || Row <- Rows ]
+            RscIds = lists:map(
+                fun(Row) ->
+                    proplists:get_value(rsc_id, Row)
+                end,
+                Rows),
+            lists:filter(
+                fun (RscId) ->
+                    case m_identity:get_username(RscId, Context) of
+                        undefined -> false;
+                        <<"admin">> -> false;
+                        _ -> true
+                    end
+                end,
+                RscIds)
     end.
 
 
