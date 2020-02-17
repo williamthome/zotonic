@@ -633,14 +633,14 @@ mail_result(SurveyId, PrepAnswers, SurveyResult, Context) ->
 mail_respondent(SurveyId, Answers, AnswerId, PrepAnswers, SurveyResult, IsEditing, Context) ->
     case z_convert:to_bool(m_rsc:p_no_acl(SurveyId, survey_email_respondent, Context)) of
         true ->
-            Email = case IsEditing of
+            EmailUser = case IsEditing of
                 false ->
                     m_rsc:p_no_acl(z_acl:user(Context), email_raw, Context);
                 true ->
                     AnsUserId = answer_user(AnswerId, Context),
                     m_rsc:p_no_acl(AnsUserId, email_raw, Context)
             end,
-            case find_email_respondent(Answers, Email) of
+            case find_email_respondent(Answers, EmailUser) of
                 <<>> ->
                     skip;
                 undefined ->
