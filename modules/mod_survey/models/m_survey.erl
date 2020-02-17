@@ -42,6 +42,7 @@
 
     is_answer_user/2,
     is_answer_user/3,
+    answer_user/2,
 
     list_results/2,
     single_result/3,
@@ -660,15 +661,19 @@ is_answer_user(AnsId, Context) ->
 
 -spec is_answer_user(integer(), integer(), #context{}) -> boolean().
 is_answer_user(AnsId, UserId, Context) when is_integer(UserId) ->
-    AnsUserId = z_db:q1("
+    answer_user(AnsId, Context) =:= UserId;
+is_answer_user(_AnsId, _UserId, _Context) ->
+    false.
+
+-spec answer_user(integer(), #context{}) -> integer() | undefined.
+answer_user(AnsId, Context) ->
+    z_db:q1("
         select user_id
         from survey_answers
         where id = $1",
         [AnsId],
-        Context),
-    AnsUserId =:= UserId;
-is_answer_user(_AnsId, _UserId, _Context) ->
-    false.
+        Context).
+
 
 -spec list_results(integer(), #context{}) -> list().
 list_results(SurveyId, Context) when is_integer(SurveyId) ->

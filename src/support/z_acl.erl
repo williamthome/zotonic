@@ -294,6 +294,8 @@ set_anonymous(Context) ->
 
 %% @doc Log the user with the id on, fill the acl field of the context
 -spec logon(pos_integer(), #context{}) -> #context{}.
+logon(Id, #context{ user_id = Id } = Context) ->
+    Context;
 logon(Id, Context) ->
     case z_notifier:first(#acl_logon{id=Id}, Context) of
         undefined -> Context#context{acl=undefined, user_id=Id};

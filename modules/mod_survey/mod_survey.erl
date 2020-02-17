@@ -562,13 +562,13 @@ do_submit(SurveyId, Questions, Answers, Context) ->
         undefined ->
             StorageAnswers = survey_answers_to_storage(FoundAnswers),
             {ok, ResultId} = insert_survey_submission(SurveyId, StorageAnswers, Context),
-            maybe_mail(SurveyId, Answers, ResultId, Context),
+            maybe_mail(SurveyId, Answers, ResultId, false, Context),
             ok;
         ok ->
-            maybe_mail(SurveyId, Answers, undefined, Context),
+            maybe_mail(SurveyId, Answers, undefined, false, Context),
             ok;
         {ok, _Context1} = Handled ->
-            maybe_mail(SurveyId, Answers, undefined, Context),
+            maybe_mail(SurveyId, Answers, undefined, false, Context),
             Handled;
         {error, _Reason} = Error ->
             Error
@@ -585,7 +585,7 @@ persistent_id(#context{session_id = undefined}) -> undefined;
 persistent_id(Context) -> z_context:persistent_id(Context).
 
 
-maybe_mail(SurveyId, Answers, ResultId, Context) ->
+maybe_mail(SurveyId, Answers, ResultId, IsEditing, Context) ->
     case probably_email(SurveyId, Context) of
         true ->
             PrepAnswers = survey_answer_prep:readable(SurveyId, Answers, Context),
@@ -593,7 +593,7 @@ maybe_mail(SurveyId, Answers, ResultId, Context) ->
                 undefined -> undefined;
                 _ -> m_survey:single_result(SurveyId, ResultId, Context)
             end,
-            mail_respondent(SurveyId, Answers, PrepAnswers, SurveyResult, Context),
+            mail_respondent(SurveyId, Answers, ResultId, PrepAnswers, SurveyResult, IsEditing, Context),
             mail_result(SurveyId, PrepAnswers, SurveyResult, Context);
         false ->
             nop
@@ -630,10 +630,17 @@ mail_result(SurveyId, PrepAnswers, SurveyResult, Context) ->
             ok
     end.
 
-mail_respondent(SurveyId, Answers, PrepAnswers, SurveyResult, Context) ->
+mail_respondent(SurveyId, Answers, AnswerId, PrepAnswers, SurveyResult, IsEditing, Context) ->
     case z_convert:to_bool(m_rsc:p_no_acl(SurveyId, survey_email_respondent, Context)) of
         true ->
-            case find_email_respondent(Answers, Context) of
+            Email = case IsEditing of
+                false ->
+                    m_rsc:p_no_acl(z_acl:user(Context), email_raw, Context);
+                true ->
+                    AnsUserId = answer_user(AnswerId, Context),
+                    m_rsc:p_no_acl(AnsUserId, email_raw, Context)
+            end,
+            case find_email_respondent(Answers, Email) of
                 <<>> ->
                     skip;
                 undefined ->
@@ -651,16 +658,16 @@ mail_respondent(SurveyId, Answers, PrepAnswers, SurveyResult, Context) ->
             skip
     end.
 
-find_email_respondent([], Context) ->
-    m_rsc:p_no_acl(z_acl:user(Context), email, Context);
-find_email_respondent([{<<"email">>, Ans}|As], Context) ->
+find_email_respondent([], Default) ->
+    Default;
+find_email_respondent([{<<"email">>, Ans}|As], Default) ->
     Ans1 = z_string:trim(Ans),
     case z_utils:is_empty(Ans1) of
-        true -> find_email_respondent(As, Context);
+        true -> find_email_respondent(As, Default);
         false -> Ans1
     end;
-find_email_respondent([_Ans|As], Context) ->
-    find_email_respondent(As, Context).
+find_email_respondent([_Ans|As], Default) ->
+    find_email_respondent(As, Default).
 
 
 %% @doc Collect all answers, report any missing answers.
@@ -695,7 +702,7 @@ collect_answers([Q|Qs], Answers, FoundAnswers, Missing, Context) ->
 
 %% @doc Save the modified survey results
 admin_edit_survey_result(SurveyId, Questions, Answers, {editing, AnswerId, Actions}, Context) ->
-    case z_acl:rsc_editable(SurveyId, Context) 
+    case z_acl:rsc_editable(SurveyId, Context)
         orelse (
             z_convert:to_integer(m_rsc:p(SurveyId, survey_multiple, Context)) =:= 2
             andalso is_answer_user(AnswerId, Context))
@@ -704,6 +711,12 @@ admin_edit_survey_result(SurveyId, Questions, Answers, {editing, AnswerId, Actio
             {FoundAnswers, _Missing} = collect_answers(Questions, Answers, Context),
             StorageAnswers = survey_answers_to_storage(FoundAnswers),
             m_survey:replace_survey_submission(SurveyId, AnswerId, StorageAnswers, Context),
+            case ?DEBUG(z_context:get_q("submit-email", Context)) of
+                undefined ->
+                    ok;
+                _SomeValue ->
+                    maybe_mail(SurveyId, Answers, AnswerId, true, Context)
+            end,
             case Actions of
                 [] ->
                     Context1 = z_render:dialog_close(Context),
@@ -740,6 +753,11 @@ is_answer_user(AnswerId, Context) when is_integer(AnswerId) ->
     end;
 is_answer_user(_, _Context) ->
     false.
+
+answer_user({user, UserId}, _) ->
+    UserId;
+answer_user(AnswerId, Context) ->
+    m_survey:answer_user(AnswerId, Context).
 
 survey_answers_to_storage(AnsPerBlock) ->
     lists:flatten(
