@@ -586,7 +586,7 @@ persistent_id(Context) -> z_context:persistent_id(Context).
 
 
 maybe_mail(SurveyId, Answers, ResultId, IsEditing, Context) ->
-    case probably_email(SurveyId, Context) of
+    case IsEditing orelse probably_email(SurveyId, Context) of
         true ->
             PrepAnswers = survey_answer_prep:readable(SurveyId, Answers, Context),
             SurveyResult = case ResultId of
@@ -711,7 +711,7 @@ admin_edit_survey_result(SurveyId, Questions, Answers, {editing, AnswerId, Actio
             {FoundAnswers, _Missing} = collect_answers(Questions, Answers, Context),
             StorageAnswers = survey_answers_to_storage(FoundAnswers),
             m_survey:replace_survey_submission(SurveyId, AnswerId, StorageAnswers, Context),
-            case ?DEBUG(z_context:get_q("submit-email", Context)) of
+            case z_context:get_q("submit-email", Context) of
                 undefined ->
                     ok;
                 _SomeValue ->
