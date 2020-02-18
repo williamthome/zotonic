@@ -788,8 +788,13 @@ build_and_encode_mail(Headers, Text, Html, Attachment, Context) ->
                 true -> 
                     [];
                 false -> 
+                    ContentHtml = case binary:split(iolist_to_binary(Html), <<"<!--content-->">>) of
+                        [ _, MDH ] -> MDH;
+                        _ -> Html
+                    end,
+                    io:format("~s", [ContentHtml]),
                     [{<<"text">>, <<"plain">>, [], Params, 
-                     expand_cr(z_convert:to_binary(z_markdown:to_markdown(Html, [no_html])))}]
+                     expand_cr(z_convert:to_binary(z_markdown:to_markdown(ContentHtml, [no_html])))}]
             end;
         false -> 
             [{<<"text">>, <<"plain">>, [], Params, 
