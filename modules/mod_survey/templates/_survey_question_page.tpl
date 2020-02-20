@@ -37,7 +37,10 @@
 				{% wire id=#cancel action={confirm text=_"Are you sure you want to stop?" ok=_"Stop" cancel=_"Continue" action={redirect id=id}} %}
 			{% endif %}
 			{% with questions|last as last_q %}
-			{% if not questions|survey_is_submit and last_q.type /= "survey_stop" %}
+			{% if not questions|survey_is_submit
+				  and last_q.type /= "survey_stop"
+				  and last_q.type /= "survey_button"
+			%}
 				<button type="submit" class="btn btn-primary">{% if page_nr == pages %}{_ Submit _}{% else %}{_ Next _}{% endif %}</button>
 			{% endif %}
 			{% endwith %}
