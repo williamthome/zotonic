@@ -1,9 +1,9 @@
 %% @author Marc Worrell <marc@worrell.nl>
 %% @author Atilla Erdodi <atilla@maximonster.com>
-%% @copyright 2010-2015 Maximonster Interactive Things
+%% @copyright 2010-2020 Maximonster Interactive Things
 %% @doc Email server. Queues, renders and sends e-mails.
 
-%% Copyright 2010-2015 Maximonster Interactive Things
+%% Copyright 2010-2020 Maximonster Interactive Things
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@
     start_link/0,
     is_bounce_email_address/1,
     bounced/2,
+    delivery_report/4,
     generate_message_id/0,
     send/2,
     send/3,
@@ -60,6 +61,11 @@
 
 -record(email_sender, {id, sender_pid, domain, is_connected=false}).
 
+
+-type delivery_type() :: permanent_failure | temporary_failure | delivered.
+-export_type([ delivery_type/0 ]).
+
+
 %%====================================================================
 %% API
 %%====================================================================
@@ -81,7 +87,10 @@ is_bounce_email_address(_) -> false.
 %% @doc Handle a bounce
 bounced(Peer, NoReplyEmail) ->
     gen_server:cast(?MODULE, {bounced, Peer, NoReplyEmail}).
-    
+
+-spec delivery_report( delivery_type(), binary() | undefined, binary(), binary() | undefined ) -> ok.
+delivery_report(What, OptRecipient, NoReplyEmail, OptStatusMessage) ->
+    gen_server:cast(?MODULE, {delivery_report, What, OptRecipient, NoReplyEmail, OptStatusMessage}).
 
 %% @doc Generate a new message id
 generate_message_id() ->
@@ -262,6 +271,33 @@ handle_cast({bounced, Peer, BounceEmail}, State) ->
     end,
     {noreply, State};
 
+handle_cast({delivery_report, What, OptRecipient, NoReplyEmail, Recipient, OptStatusMessage}, State) ->
+    [BounceLocalName,Domain] = binstr:split(z_convert:to_binary(NoReplyEmail), <<"@">>),
+    <<"noreply+", MsgId/binary>> = BounceLocalName,
+
+    % Find the original message in our database of recent sent e-mail
+    TrFun = fun()->
+                    [QEmail] = mnesia:read(email_queue, MsgId),
+                    mnesia:delete_object(QEmail),
+                    {(QEmail#email_queue.email)#email.to, QEmail#email_queue.pickled_context}
+            end,
+    case mnesia:transaction(TrFun) of
+        {atomic, {Recipient, PickledContext}} ->
+            Context = z_context:depickle(PickledContext),
+            handle_delivery_report(What, MsgId, Recipient, OptStatusMessage, Context);
+        _ ->
+            % We got a bounce, but we don't have the message anymore.
+            % Custom bounce domains make this difficult to process.
+            case z_sites_dispatcher:get_host_for_domain(Domain) of
+                {ok, Host} ->
+                    Context = z_context:new(Host),
+                    handle_delivery_report(What, MsgId, OptRecipient, OptStatusMessage, Context);
+                undefined ->
+                    ignore
+            end
+    end,
+    {noreply, State};
+
 %% @doc Trap unknown casts
 handle_cast(Message, State) ->
     {stop, {unknown_cast, Message}, State}.
@@ -300,6 +336,80 @@ code_change(_OldVsn, State, _Extra) ->
 %%====================================================================
 %% support functions
 %%====================================================================
+
+
+handle_delivery_report(permanent_failure, MsgId, Recipient, OptMessage, Context) ->
+    lager:warning("[smtp] Permanent failure sending email to ~p (~p): ~p",
+                  [Recipient, MsgId, OptMessage]),
+    z_notifier:notify(#email_failed{
+            message_nr = MsgId,
+            recipient = Recipient,
+            is_final = true,
+            reason = bounce,
+            status = OptMessage
+        }, Context),
+    z_notifier:notify(#zlog{
+            user_id = z_acl:user(Context),
+            props = #log_email{
+                    severity = ?LOG_ERROR,
+                    message_nr = MsgId,
+                    mailer_status = bounce,
+                    mailer_message = OptMessage,
+                    envelop_to = Recipient,
+                    envelop_from = "<>",
+                    to_id = z_acl:user(Context),
+                    props = []
+                }
+          }, Context),
+    % delete email from the queue and notify the system
+    delete_emailq(MsgId);
+handle_delivery_report(temporary_failure, MsgId, Recipient, OptMessage, Context) ->
+    lager:info("[smtp] Temporary failure sending email to ~p (~p): ~p",
+               [Recipient, MsgId, OptMessage]),
+    z_notifier:notify(#email_failed{
+            message_nr = MsgId,
+            recipient = Recipient,
+            is_final = false,
+            reason = retry,
+            status = OptMessage
+        }, Context),
+    z_notifier:notify(#zlog{
+            user_id = z_acl:user(Context),
+            props = #log_email{
+                    severity = ?LOG_WARNING,
+                    message_nr = MsgId,
+                    mailer_status = retry,
+                    mailer_message = OptMessage,
+                    envelop_to = Recipient,
+                    envelop_from = "<>",
+                    to_id = z_acl:user(Context),
+                    props = []
+                }
+          }, Context);
+handle_delivery_report(delivered, MsgId, Recipient, OptMessage, Context) ->
+    lager:info("[smtp] Success sending email to ~p (~p): delivered",
+               [Recipient, MsgId]),
+    z_notifier:notify(#email_sent{
+            message_nr = MsgId,
+            recipient = Recipient,
+            is_final = true
+        }, Context),
+    z_notifier:notify(#zlog{
+            user_id = z_acl:user(Context),
+            props = #log_email{
+                    severity = ?LOG_INFO,
+                    message_nr = MsgId,
+                    mailer_status = delivered,
+                    mailer_message = OptMessage,
+                    envelop_to = Recipient,
+                    envelop_from = "<>",
+                    to_id = z_acl:user(Context),
+                    props = []
+                }
+          }, Context);
+handle_delivery_report(_What, _MsgId, _Recipient, _OptMessage, _Context) ->
+    ok.
+
 
 %% @doc Create the email queue in mnesia
 create_email_queue() ->
@@ -800,7 +910,7 @@ build_and_encode_mail(Headers, Text, Html, Attachment, Context) ->
             [{<<"text">>, <<"plain">>, [], Params, 
              expand_cr(z_convert:to_binary(Text))}]
     end,
-    Parts1 = case z_utils:is_empty(Html) of
+    Parts1 = case z_utils:is_empty(HtmlBin) of
         true -> 
             Parts;
         false -> 
