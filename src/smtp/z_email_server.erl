@@ -272,26 +272,35 @@ handle_cast({bounced, Peer, BounceEmail}, State) ->
     {noreply, State};
 
 handle_cast({delivery_report, What, OptRecipient, NoReplyEmail, OptStatusMessage}, State) ->
-    [BounceLocalName,Domain] = binstr:split(z_convert:to_binary(NoReplyEmail), <<"@">>),
-    <<"noreply+", MsgId/binary>> = BounceLocalName,
-
-    % Find the original message in our database of recent sent e-mail
-    TrFun = fun()->
-                    [QEmail] = mnesia:read(email_queue, MsgId),
-                    mnesia:delete_object(QEmail),
-                    {(QEmail#email_queue.email)#email.to, QEmail#email_queue.pickled_context}
-            end,
-    case mnesia:transaction(TrFun) of
-        {atomic, {Recipient, PickledContext}} ->
-            Context = z_context:depickle(PickledContext),
-            handle_delivery_report(What, MsgId, Recipient, OptStatusMessage, Context);
+    [ BounceLocalName, Domain ] = binstr:split(z_convert:to_binary(NoReplyEmail), <<"@">>),
+    case BounceLocalName of
+        <<"noreply+", MsgId/binary>> ->
+            % Find the original message in our database of recent sent e-mail
+            TrFun = fun()->
+                            [QEmail] = mnesia:read(email_queue, MsgId),
+                            mnesia:delete_object(QEmail),
+                            {(QEmail#email_queue.email)#email.to, QEmail#email_queue.pickled_context}
+                    end,
+            case mnesia:transaction(TrFun) of
+                {atomic, {Recipient, PickledContext}} ->
+                    Context = z_context:depickle(PickledContext),
+                    handle_delivery_report(What, MsgId, Recipient, OptStatusMessage, Context);
+                _ ->
+                    % We got a bounce, but we don't have the message anymore.
+                    % Custom bounce domains make this difficult to process.
+                    case z_sites_dispatcher:get_host_for_domain(Domain) of
+                        {ok, Host} ->
+                            Context = z_context:new(Host),
+                            handle_delivery_report(What, MsgId, OptRecipient, OptStatusMessage, Context);
+                        undefined ->
+                            ignore
+                    end
+            end;
         _ ->
-            % We got a bounce, but we don't have the message anymore.
-            % Custom bounce domains make this difficult to process.
             case z_sites_dispatcher:get_host_for_domain(Domain) of
                 {ok, Host} ->
                     Context = z_context:new(Host),
-                    handle_delivery_report(What, MsgId, OptRecipient, OptStatusMessage, Context);
+                    handle_delivery_report(What, <<>>, OptRecipient, OptStatusMessage, Context);
                 undefined ->
                     ignore
             end
