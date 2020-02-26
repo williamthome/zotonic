@@ -385,7 +385,7 @@ handle_delivery_report(temporary_failure, MsgId, Recipient, OptMessage, Context)
                 }
           }, Context);
 handle_delivery_report(sent, MsgId, Recipient, OptMessage, Context) ->
-    lager:info("[smtp] Success sending email to ~p (~p): received",
+    lager:info("[smtp] Success sending email to ~p (~p): sent",
                [Recipient, MsgId]),
     z_notifier:notify(#email_sent{
             message_nr = MsgId,
@@ -1068,9 +1068,11 @@ mark_sent(Id) ->
 %% @doc Deletes a message from the queue.
 delete_emailq(Id) ->
     Tr = fun()->
-                 [QEmail] = mnesia:read(email_queue, Id),
-                 mnesia:delete_object(QEmail)
-         end,
+        case mnesia:read(email_queue, Id) of
+            [QEmail] -> mnesia:delete_object(QEmail);
+            [] -> ok
+        end
+    end,
     {atomic, ok} = mnesia:transaction(Tr).
 
 
