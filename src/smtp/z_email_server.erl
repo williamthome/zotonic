@@ -271,7 +271,7 @@ handle_cast({bounced, Peer, BounceEmail}, State) ->
     end,
     {noreply, State};
 
-handle_cast({delivery_report, What, OptRecipient, NoReplyEmail, Recipient, OptStatusMessage}, State) ->
+handle_cast({delivery_report, What, OptRecipient, NoReplyEmail, OptStatusMessage}, State) ->
     [BounceLocalName,Domain] = binstr:split(z_convert:to_binary(NoReplyEmail), <<"@">>),
     <<"noreply+", MsgId/binary>> = BounceLocalName,
 
