@@ -62,7 +62,7 @@
 -record(email_sender, {id, sender_pid, domain, is_connected=false}).
 
 
--type delivery_type() :: permanent_failure | temporary_failure | received.
+-type delivery_type() :: permanent_failure | temporary_failure | sent | received.
 -export_type([ delivery_type/0 ]).
 
 
@@ -377,6 +377,27 @@ handle_delivery_report(temporary_failure, MsgId, Recipient, OptMessage, Context)
                     severity = ?LOG_WARNING,
                     message_nr = MsgId,
                     mailer_status = retry,
+                    mailer_message = OptMessage,
+                    envelop_to = Recipient,
+                    envelop_from = "<>",
+                    to_id = z_acl:user(Context),
+                    props = []
+                }
+          }, Context);
+handle_delivery_report(sent, MsgId, Recipient, OptMessage, Context) ->
+    lager:info("[smtp] Success sending email to ~p (~p): received",
+               [Recipient, MsgId]),
+    z_notifier:notify(#email_sent{
+            message_nr = MsgId,
+            recipient = Recipient,
+            is_final = false
+        }, Context),
+    z_notifier:notify(#zlog{
+            user_id = z_acl:user(Context),
+            props = #log_email{
+                    severity = ?LOG_INFO,
+                    message_nr = MsgId,
+                    mailer_status = sent,
                     mailer_message = OptMessage,
                     envelop_to = Recipient,
                     envelop_from = "<>",
