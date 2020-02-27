@@ -333,6 +333,9 @@ new_recent_error(LastRecent, IsFinal, Status) ->
 % If the permanent error is about an unknown user then we consider it fruitless to
 % try again later.  Errors about missing domains, connection errors and timeouts
 % could all be fixed later, so it is ok to mail those for a while.
+is_unrecoverable_error(<<"605", _/binary>>) ->
+    % mailgun - not trying again as they blocked the email address
+    true;
 is_unrecoverable_error(<<"550", _/binary>> = Status) ->
     S = z_string:to_lower(Status),
     binary:match(S, <<"mailbox unavailable">>) =/= nomatch          % hotmail
