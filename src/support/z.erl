@@ -35,6 +35,8 @@
          restart/0,
          restart/1,
 
+         load_config/0,
+
          ld/0,
          ld/1,
 
@@ -112,6 +114,10 @@ flush(Context) ->
 restart() ->
     zotonic:stop(),
     zotonic:start().
+
+%% @doc Reload the zotonic.config
+load_config() ->
+    z_config:load_config().
 
 %% @doc Restart a site
 restart(Site) ->
