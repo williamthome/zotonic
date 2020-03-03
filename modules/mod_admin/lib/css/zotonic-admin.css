@@ -149,6 +149,17 @@ div.cropguide.vert {
     }
 }
 
+/* text
+--------------------------------------------------------- */
+
+.text-right {
+    text-align: right;
+}
+
+.text-error {
+    color: #b94a48;;
+}
+
 /* widget
 --------------------------------------------------------- */
 
@@ -445,6 +456,12 @@ ul.blocks .ui-sortable-placeholder {
     vertical-align:sub;
 }
 
+#crop-center-message {
+    display: block;
+    margin: 0 0 10px 0;
+    background: none;
+    border: none;
+}
 
 /* Connections
 ---------------------------------------------------------- */

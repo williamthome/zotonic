@@ -8,9 +8,9 @@
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
-%% 
+%%
 %%     http://www.apache.org/licenses/LICENSE-2.0
-%% 
+%%
 %% Unless required by applicable law or agreed to in writing, software
 %% distributed under the License is distributed on an "AS IS" BASIS,
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,13 +20,44 @@
 -module(z_media_sanitize).
 
 -export([
+    sanitize/2,
     is_file_acceptable/2
     ]).
 
-% For testing
--export([
-    is_acceptable_svg/1
-    ]).
+-include("zotonic.hrl").
+
+
+%% @doc Sanitize uploaded media files.
+sanitize(#media_upload_preprocess{ mime = "image/svg+xml" } = PP, _Context) ->
+    sanitize_svg(PP);
+sanitize(#media_upload_preprocess{ mime = "text/html" } = PP, Context) ->
+    sanitize_html(PP, Context);
+sanitize(#media_upload_preprocess{ mime = "text/csv" } = PP, Context) ->
+    sanitize_csv(PP, Context);
+sanitize(#media_upload_preprocess{ mime = "application/xml+html" } = PP, Context) ->
+    sanitize_html(PP, Context);
+sanitize(#media_upload_preprocess{ mime = Mime } = PP, _Context) when is_list(Mime) ->
+    PP.
+
+sanitize_svg(#media_upload_preprocess{file=File} = PP) ->
+    {ok, Bin} = file:read_file(File),
+    Svg = z_svg:sanitize(Bin),
+    TmpFile = z_tempfile:new(".svg"),
+    ok = file:write_file(TmpFile, Svg),
+    PP#media_upload_preprocess{ file = TmpFile }.
+
+sanitize_html(#media_upload_preprocess{file=File} = PP, Context) ->
+    {ok, Bin} = file:read_file(File),
+    Html = z_sanitize:html(Bin, Context),
+    TmpFile = z_tempfile:new(".html"),
+    ok = file:write_file(TmpFile, Html),
+    PP#media_upload_preprocess{ file = TmpFile, mime = "text/html" }.
+
+sanitize_csv(#media_upload_preprocess{file=File} = PP, _Context) ->
+    TmpFile = z_tempfile:new(".csv"),
+    ok = z_csv_writer:sanitize(File, TmpFile),
+    PP#media_upload_preprocess{ file = TmpFile }.
+
 
 %% @doc Check the contents of an identified file, to see if it is acceptable for further processing.
 %%      Catches files that might be problematic for ImageMagick or other file processors.
@@ -34,19 +65,8 @@ is_file_acceptable(File, MediaProps) when is_list(MediaProps) ->
     Mime = z_convert:to_binary(proplists:get_value(mime, MediaProps)),
     is_file_acceptable_1(Mime, File, MediaProps).
 
-is_file_acceptable_1(<<"image/svg+xml">>, File, _MediaProps) ->
-    {ok, Bin} = file:read_file(File),
-    is_acceptable_svg(Bin);
+% is_file_acceptable_1(<<"image/svg+xml">>, File, _MediaProps) ->
+%     {ok, Bin} = file:read_file(File),
+%     is_acceptable_svg(Bin);
 is_file_acceptable_1(_Mime, _File, _MediaProps) ->
     true.
-
-%% @doc Don't accept SVG files referring to an external resource. 
-%%      Refuses anything containing "href=" and "url(...)" not referring to local ids.
-is_acceptable_svg(Bin) ->
-    Bin1 = re:replace(Bin, <<"href=\"#">>, <<>>),
-    Bin2 = re:replace(Bin1, <<"url\\(#">>, <<>>),
-    case re:run(Bin2, "([^a-zA-Z][hH][rR][eE][fF]\\s*=|[uU][rR][lL]\\s*\\()") of
-        {match, _} -> false;
-        nomatch -> true
-    end.
-
