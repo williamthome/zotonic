@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2020-03-03 10:57+0100\n"
+"PO-Revision-Date: 2020-03-03 12:33+0100\n"
 "Last-Translator: Marc Worrell <marc@worrell.nl>\n"
 "Language-Team: \n"
 "Language: nl\n"
@@ -200,7 +200,7 @@ msgstr "Kies de nieuwe categorie van deze pagina."
 msgid "City"
 msgstr "Stad"
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:30
+#: modules/mod_admin/templates/_admin_edit_media.tpl:31
 msgid "Click the image to set the cropping center."
 msgstr "Klik op de afbeelding om het middelpunt van uitsnedes te bepalen."
 
@@ -229,11 +229,11 @@ msgstr "Paginaconnectie maken"
 msgid "Content"
 msgstr "Inhoud"
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:44
+#: modules/mod_admin/templates/_admin_edit_media.tpl:46
 msgid "Copied download link to clipboard"
 msgstr "Download link is naar het prikbord gekopieerd."
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:41
+#: modules/mod_admin/templates/_admin_edit_media.tpl:43
 msgid "Copy download link"
 msgstr "Kopieer download link"
 
@@ -310,7 +310,7 @@ msgstr "Ontkoppel"
 msgid "Do you want to remove this block?"
 msgstr "Wil je dit blok echt verwijderen?"
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:36
+#: modules/mod_admin/templates/_admin_edit_media.tpl:38
 msgid "Download"
 msgstr "Download"
 
@@ -353,7 +353,7 @@ msgstr "Pagina embedden"
 msgid "Emergency telephone"
 msgstr "Noodnummer (telefoon)"
 
-#: modules/mod_admin/actions/action_admin_dialog_media_upload.erl:161
+#: modules/mod_admin/actions/action_admin_dialog_media_upload.erl:167
 msgid "Error uploading the file."
 msgstr "Fout bij uploaden van bestand."
 
@@ -812,8 +812,8 @@ msgstr "Vervang huidig mediabestand"
 msgid "Replace media item"
 msgstr "Vervang mediabestand"
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:49
-#: modules/mod_admin/templates/_admin_edit_media.tpl:87
+#: modules/mod_admin/templates/_admin_edit_media.tpl:51
+#: modules/mod_admin/templates/_admin_edit_media.tpl:89
 msgid "Replace this media item"
 msgstr "Vervang dit mediabestand"
 
@@ -991,17 +991,29 @@ msgstr ""
 msgid "This connection already exists."
 msgstr "Deze connectie bestaat al."
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:71
+#: modules/mod_admin/actions/action_admin_dialog_media_upload.erl:162
+msgid "This file contains links to other files or locations."
+msgstr "Dit bestand bevat links naar andere bestanden of locaties."
+
+#: modules/mod_admin/templates/_admin_edit_media.tpl:73
 msgid "This file has been scanned for viruses."
 msgstr "Dit bestand is gescand op virussen."
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:67
+#: modules/mod_admin/templates/_admin_edit_media.tpl:69
 msgid "This file has not been scanned for viruses because it is too large."
 msgstr "Dit bestand is niet gescand op virussen omdat het te groot is."
 
-#: modules/mod_admin/templates/_admin_edit_media.tpl:75
+#: modules/mod_admin/templates/_admin_edit_media.tpl:77
 msgid "This file has not been scanned for viruses."
 msgstr "Dit bestand is niet gescand op virussen."
+
+#: modules/mod_admin/actions/action_admin_dialog_media_upload.erl:160
+msgid "This file is infected with a virus."
+msgstr "Dit bestand is geïnfecteerd met een virus."
+
+#: modules/mod_admin/actions/action_admin_dialog_media_upload.erl:164
+msgid "This file is too large."
+msgstr "Dit bestand is te groot."
 
 #: modules/mod_admin/templates/admin_status.tpl:9
 msgid ""
@@ -1091,7 +1103,7 @@ msgid "Valid for:"
 msgstr "Geldig voor:"
 
 #: modules/mod_admin/templates/_admin_edit_content_publish.tpl:22
-#: modules/mod_admin/templates/_admin_edit_media.tpl:35
+#: modules/mod_admin/templates/_admin_edit_media.tpl:37
 #: modules/mod_admin/templates/_admin_edit_floating_buttons.tpl:9
 msgid "View"
 msgstr "Bekijken"
@@ -1279,7 +1291,7 @@ msgid "untitled"
 msgstr "zonder titel"
 
 #: modules/mod_admin/templates/_admin_edit_media.tpl:13
-#: modules/mod_admin/templates/_admin_edit_media.tpl:82
+#: modules/mod_admin/templates/_admin_edit_media.tpl:84
 msgid "uploaded on"
 msgstr "geupload op"
 
