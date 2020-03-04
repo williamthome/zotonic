@@ -30,6 +30,17 @@
     {_ Most recent messages _}
 </h3>
 <br />
+
+{% if m.modules.active.mod_email_status and q.to and not q.to|match:"%" %}
+    <div class="widget" style="max-width: 700px">
+        <h3 class="widget-header"><span class="icon-email"></span> {_ Email status _}</h3>
+        <div class="widget-content">
+            {% include "_email_status_view.tpl" email=q.to %}
+        </div>
+    </div>
+{% endif %}
+
+
 {% with m.search[{log_email
     page=q.page
     pagelen=20
