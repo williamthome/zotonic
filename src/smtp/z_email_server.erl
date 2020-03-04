@@ -36,7 +36,8 @@
     send/3,
 
     is_sender_enabled/2,
-    is_sender_enabled/3
+    is_sender_enabled/3,
+    is_recipient_blocked/2
 ]).
 
 -include_lib("zotonic.hrl").
@@ -144,6 +145,18 @@ recipient_is_user_or_admin(Id, RecipientEmail, Context) ->
                      end,
                      m_identity:get_rsc_by_type(Id, email, Context)).
 
+is_recipient_blocked(Recipient, Context) ->
+    RecipientEmail = recipient_email_address(Recipient),
+    case z_notifier:first( #email_is_blocked{ recipient = RecipientEmail }, Context) of
+        undefined -> false;
+        true -> true;
+        false -> false
+    end.
+
+recipient_email_address(Recipient) ->
+    Recipient2 = z_string:trim(z_string:line(z_convert:to_binary(Recipient))),
+    {_RcptName, RecipientEmail} = z_email:split_name_email(Recipient2),
+    z_string:to_lower(RecipientEmail).
 
 %%====================================================================
 %% gen_server callbacks
@@ -593,7 +606,8 @@ delete_email(Error, Id, Recipient, Email, Context) ->
             is_final=true,
             status= case Error of
                         illegal_address -> <<"Malformed email address">>;
-                        sender_disabled -> <<"Sender disabled">>
+                        sender_disabled -> <<"Sender disabled">>;
+                        recipient_blocked -> <<"Recipient blocked">>
                     end,
             reason=Error
         }, Context),
@@ -618,49 +632,54 @@ spawn_send_checked(Id, Recipient, Email, RetryCt, Context, State) ->
     lager:info("[~p] email: spawning email sender for <~p> (~p)",
                [z_context:site(Context), Recipient, Id]),
     Recipient1 = check_override(Recipient, m_config:get_value(site, email_override, Context), State),
-    Recipient2 = string:strip(z_string:line(binary_to_list(z_convert:to_binary(Recipient1)))),
-    {_RcptName, RecipientEmail} = z_email:split_name_email(Recipient2),
-    [_RcptLocalName, RecipientDomain] = string:tokens(RecipientEmail, "@"),
-    SmtpOpts = [
-        {no_mx_lookups, State#state.smtp_no_mx_lookups},
-        {hostname, z_email:email_domain(Context)},
-        {tls_options, [{versions, ['tlsv1.2']}]}
-        | case State#state.smtp_relay of
-            true -> State#state.smtp_relay_opts;
-            false -> [{relay, RecipientDomain}]
-          end
-    ],
-    BccSmtpOpts = case z_utils:is_empty(State#state.smtp_bcc) of
-                      true -> 
-                            [];
-                      false ->
-                            {_BccName, BccEmail} = z_email:split_name_email(State#state.smtp_bcc),
-                            [_BccLocalName, BccDomain] = string:tokens(BccEmail, "@"),
-                            [
-                                {no_mx_lookups, State#state.smtp_no_mx_lookups},
-                                {hostname, z_email:email_domain(Context)},
-                                {tls_options, [{versions, ['tlsv1.2']}]}
-                                | case State#state.smtp_relay of
-                                    true -> State#state.smtp_relay_opts;
-                                    false -> [{relay, BccDomain}]
-                                  end
-                            ]
-                  end,
-    MessageId = message_id(Id, Context),
-    VERP = bounce_email(MessageId, Context),
-    From = get_email_from(Email#email.from, VERP, State, Context),
-    SenderPid = erlang:spawn_link(
-                    fun() ->
-                        spawned_email_sender(
-                                Id, MessageId, Recipient, RecipientEmail, "<"++VERP++">",
-                                From, State#state.smtp_bcc, Email, SmtpOpts, BccSmtpOpts,
-                                RetryCt, Context)
-                    end),
-    {relay, Relay} = proplists:lookup(relay, SmtpOpts),
-    State#state{
-            sending=[
-                #email_sender{id=Id, sender_pid=SenderPid, domain=Relay} | State#state.sending
-            ]}.
+    RecipientEmail = recipient_email_address(Recipient1),
+    case is_recipient_blocked(RecipientEmail, Context) of
+        false ->
+            [_RcptLocalName, RecipientDomain] = string:tokens(z_convert:to_list(RecipientEmail), "@"),
+            SmtpOpts = [
+                {no_mx_lookups, State#state.smtp_no_mx_lookups},
+                {hostname, z_email:email_domain(Context)},
+                {tls_options, [{versions, ['tlsv1.2']}]}
+                | case State#state.smtp_relay of
+                    true -> State#state.smtp_relay_opts;
+                    false -> [{relay, RecipientDomain}]
+                  end
+            ],
+            BccSmtpOpts = case z_utils:is_empty(State#state.smtp_bcc) of
+                              true -> 
+                                    [];
+                              false ->
+                                    {_BccName, BccEmail} = z_email:split_name_email(State#state.smtp_bcc),
+                                    [_BccLocalName, BccDomain] = string:tokens(BccEmail, "@"),
+                                    [
+                                        {no_mx_lookups, State#state.smtp_no_mx_lookups},
+                                        {hostname, z_email:email_domain(Context)},
+                                        {tls_options, [{versions, ['tlsv1.2']}]}
+                                        | case State#state.smtp_relay of
+                                            true -> State#state.smtp_relay_opts;
+                                            false -> [{relay, BccDomain}]
+                                          end
+                                    ]
+                          end,
+            MessageId = message_id(Id, Context),
+            VERP = bounce_email(MessageId, Context),
+            From = get_email_from(Email#email.from, VERP, State, Context),
+            SenderPid = erlang:spawn_link(
+                            fun() ->
+                                spawned_email_sender(
+                                        Id, MessageId, Recipient, RecipientEmail, "<"++VERP++">",
+                                        From, State#state.smtp_bcc, Email, SmtpOpts, BccSmtpOpts,
+                                        RetryCt, Context)
+                            end),
+            {relay, Relay} = proplists:lookup(relay, SmtpOpts),
+            State#state{
+                    sending=[
+                        #email_sender{id=Id, sender_pid=SenderPid, domain=Relay} | State#state.sending
+                    ]};
+        true ->
+            delete_email(recipient_blocked, Id, RecipientEmail, Email, Context),
+            State
+    end.
 
 spawned_email_sender(Id, MessageId, Recipient, RecipientEmail, VERP, From, 
                      Bcc, Email, SmtpOpts, BccSmtpOpts, RetryCt, Context) ->

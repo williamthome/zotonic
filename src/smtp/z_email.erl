@@ -184,7 +184,9 @@ combine_name_email(Name, Email) ->
 
 
 %% @doc Split the name and email from the format `jan janssen <jan@example.com>'
-split_name_email(Email) ->
+split_name_email(Email) when is_binary(Email) ->
+    split_name_email(binary_to_list(Email));
+split_name_email(Email) when is_list(Email) ->
     Email1 = string:strip(rfc2047:decode(Email)),
     case smtp_util:parse_rfc822_addresses(Email1) of
         {ok, [{undefined, E}|_]} -> {"", E};
