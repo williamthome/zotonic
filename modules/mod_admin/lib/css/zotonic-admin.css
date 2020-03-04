@@ -272,6 +272,19 @@ div.save-buttons {
     display: inline;
 }
 
+/* data table
+--------------------------------------------------------- */
+
+table.data-table {
+    max-width: 100%;
+}
+
+table.data-table th,
+table.data-table td {
+    word-break: break-all;
+}
+
+
 /* admin table
 --------------------------------------------------------- */
 

@@ -36,8 +36,8 @@
         <div class="span6">
             <div class="widget">
                 <h3 class="widget-header">{_ Email status _}</h3>
-                <div class="widget-content">
-                    {% include "_email_status_view.tpl" email=q.to %}
+                <div class="widget-content" id="{{ #statuspanel }}">
+                    {% include "_email_status_view.tpl" email=q.to panel_id=#statuspanel %}
                 </div>
             </div>
         </div>
@@ -86,7 +86,7 @@
 }] as result 
 %}
 <form id="log_filter" method="GET" action="{% url log_email %}">
-    <table class="table">
+    <table class="table data-table">
         <thead>
             <tr>
 	        <th width="10%">{_ Severity _}</th>
