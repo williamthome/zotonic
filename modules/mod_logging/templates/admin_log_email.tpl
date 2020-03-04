@@ -32,10 +32,39 @@
 <br />
 
 {% if m.modules.active.mod_email_status and q.to and not q.to|match:"%" %}
-    <div class="widget" style="max-width: 700px">
-        <h3 class="widget-header"><span class="icon-email"></span> {_ Email status _}</h3>
-        <div class="widget-content">
-            {% include "_email_status_view.tpl" email=q.to %}
+    <div class="row-fluid">
+        <div class="span6">
+            <div class="widget">
+                <h3 class="widget-header"><span class="icon-email"></span> {_ Email status _}</h3>
+                <div class="widget-content">
+                    {% include "_email_status_view.tpl" email=q.to %}
+                </div>
+            </div>
+        </div>
+        <div class="span6">
+            <div class="widget">
+                <h3 class="widget-header"><span class="icon-email"></span> {_ Resources with email identity _} &lt;{{ q.to|escape }}&gt;</h3>
+                <div class="widget-content">
+                    <ol>
+                        {% for idn in m.identity.lookup.email[q.to] %}
+                            <li>
+                                <b>
+                                    <a href="{% url admin_edit_rsc id=idn.rsc_id %}">
+                                        {{ idn.rsc_id.title|default:"untitled" }}
+                                    </a>
+                                </b>
+                                <br>
+                                <span class="muted">
+                                    {{ idn.rsc_id.category_id.title }}
+                                    {% if idn.is_verified %}
+                                        &mdash; <span class="icon-check"></span> {_ email verified _}
+                                    {% endif %}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
         </div>
     </div>
 {% endif %}

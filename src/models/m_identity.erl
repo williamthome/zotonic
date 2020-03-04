@@ -86,6 +86,13 @@
 
 %% @doc Fetch the value for the key from a model source
 %% @spec m_find_value(Key, Source, Context) -> term()
+m_find_value(lookup, #m{value=undefined} = M, _Context) ->
+    M#m{value=lookup};
+m_find_value(Type, #m{value=lookup} = M, _Context) ->
+    M#m{value={lookup, Type}};
+m_find_value(Key, #m{value={lookup, Type}}, Context) ->
+    lookup_by_type_and_key_multi(Type, Key, Context);
+
 m_find_value(Id, #m{value=undefined} = M, _Context) ->
     M#m{value=Id};
 m_find_value(is_user, #m{value=RscId}, Context) ->
@@ -104,6 +111,7 @@ m_find_value(IdnId, #m{value=get}, Context) ->
     get(IdnId, Context);
 m_find_value(Type, #m{value=RscId}, Context) ->
     get_rsc(RscId, Type, Context).
+
 
 %% @doc Transform a m_config value to a list, used for template loops
 %% @spec m_to_list(Source, Context) -> List
