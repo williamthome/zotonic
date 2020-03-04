@@ -35,7 +35,7 @@
     <div class="row-fluid">
         <div class="span6">
             <div class="widget">
-                <h3 class="widget-header"><span class="icon-email"></span> {_ Email status _}</h3>
+                <h3 class="widget-header">{_ Email status _}</h3>
                 <div class="widget-content">
                     {% include "_email_status_view.tpl" email=q.to %}
                 </div>
@@ -43,8 +43,10 @@
         </div>
         <div class="span6">
             <div class="widget">
-                <h3 class="widget-header"><span class="icon-email"></span> {_ Resources with email identity _} &lt;{{ q.to|escape }}&gt;</h3>
+                <h3 class="widget-header">{_ Identities _}</h3>
                 <div class="widget-content">
+                    <h3>{_ Resources with email identity _} &lt;{{ q.to|escape }}&gt;</h3>
+                    <br>
                     <ol>
                         {% for idn in m.identity.lookup.email[q.to] %}
                             <li>
