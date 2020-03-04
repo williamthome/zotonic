@@ -598,6 +598,24 @@ spawn_send_check_email(Id, Recipient, Email, RetryCt, Context, State) ->
             State
     end.
 
+drop_blocked_email(Id, Recipient, Email, Context) ->
+    delete_emailq(Id),
+    LogEmail = #log_email{
+        severity=?LOG_ERROR,
+        mailer_status=error,
+        mailer_message = <<"Recipient blocked">>,
+        props=[{reason, recipient_blocked}],
+        message_nr=Id,
+        envelop_to=Recipient,
+        envelop_from="",
+        to_id=proplists:get_value(recipient_id, Email#email.vars),
+        from_id=z_acl:user(Context),
+        content_id=proplists:get_value(id, Email#email.vars),
+        other_id=proplists:get_value(list_id, Email#email.vars),
+        message_template=Email#email.html_tpl
+    },
+    z_notifier:notify(#zlog{user_id=z_acl:user(Context), props=LogEmail}, Context).
+
 delete_email(Error, Id, Recipient, Email, Context) ->
     delete_emailq(Id),
     z_notifier:first(#email_failed{
@@ -677,7 +695,7 @@ spawn_send_checked(Id, Recipient, Email, RetryCt, Context, State) ->
                         #email_sender{id=Id, sender_pid=SenderPid, domain=Relay} | State#state.sending
                     ]};
         true ->
-            delete_email(recipient_blocked, Id, RecipientEmail, Email, Context),
+            drop_blocked_email(Id, RecipientEmail, Email, Context),
             State
     end.
 
