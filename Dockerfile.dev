@@ -26,7 +26,7 @@ RUN apt-get -y install build-essential libssl-dev automake \
 
 # RUN adduser --system --home /tmp zotonic
 
-RUN adduser --system --no-create-home --ingroup root zotonic
+RUN adduser --system --ingroup root zotonic
 
 # Note: gosu is pulled from edge; remove that when upgrading to an alpine release that
 # includes the package.
@@ -37,6 +37,9 @@ COPY docker/docker-entrypoint.sh /opt/zotonic-docker/docker-entrypoint.sh
 
 VOLUME /opt/zotonic
 VOLUME /etc/zotonic
+
+RUN chown zotonic /opt/zotonic
+RUN chown zotonic /etc/zotonic
 
 EXPOSE 8000 8443
 

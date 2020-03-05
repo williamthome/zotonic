@@ -31,17 +31,17 @@ fi
 
 if [ ! -f "/opt/zotonic/_build/default/lib/zotonic_core/ebin/zotonic_core.app" ]
 then
-    /usr/bin/gosu zotonic make
+    gosu zotonic make
 fi
 
 # If the command given is a zotonic command, pass it to zotonic; otherwise exec it directly.
 # Also check the environment for "FORCE_ZOTONIC" to provide a workaround in case the scripts
 # are moved somewhere outside of the path below.
 if [ -e "/opt/zotonic/apps/zotonic_launcher/src/command/zotonic_cmd_$1.erl" ] || [ -n "$FORCE_ZOTONIC" ]; then
-    exec /usr/bin/gosu zotonic /opt/zotonic/bin/zotonic "$@"
+    exec gosu zotonic /opt/zotonic/bin/zotonic "$@"
 else
     # Start shell
 
     printf '\n\n####\n#### Usage: bin/zotonic [options] [command]\n####\n#### To rebuild zotonic run make\n####\n\n'
-    exec /usr/bin/gosu zotonic /bin/bash
+    exec gosu zotonic /bin/bash
 fi
