@@ -42,7 +42,7 @@
                 <a data-toggle="tab" href="#{{ #tab }}-url">{_ URL _}</a>
             </li>
 	    {% endif %}
-   	    {% all include "_media_upload_tab.tpl" tab=#tab %}
+   	    {% all include "_media_upload_tab.tpl" tab=#tab tabs_enabled=tabs_enabled %}
 	{% endif %}
     {% endblock %}
 </ul>
@@ -83,7 +83,7 @@
                 {% include "_action_dialog_media_upload_tab_url.tpl" tab=#tab predicate=predicate subject_id=subject_id is_active=(tab == "url") title="" %}
             {% endif %}
 
-            {% all include "_media_upload_panel.tpl" tab=#tab predicate=predicate subject_id=subject_id title="" delegate=delegate in_sorter=in_sorter %}
+            {% all include "_media_upload_panel.tpl" tab=#tab predicate=predicate subject_id=subject_id title="" delegate=delegate in_sorter=in_sorter tabs_enabled=tabs_enabled %}
 		{% endwith %}
 	{% endif %}
     {% endblock %}
