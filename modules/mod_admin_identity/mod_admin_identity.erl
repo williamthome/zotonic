@@ -63,13 +63,17 @@ observe_rsc_update(#rsc_update{action=Action, id=RscId, props=Pre}, {_Modified, 
                 {_Old, undefined} -> Acc;
                 {_Old, <<>>} -> Acc;
                 {_Old, New} -> 
-                    ensure(RscId, email, z_html:unescape(New), Context),
+                    case is_email_identity_category(Pre, Post, Context) of
+                        true ->
+                            ensure(RscId, email, z_html:unescape(New), Context);
+                        false ->
+                            ok
+                    end,
                     Acc
             end
     end;
 observe_rsc_update(#rsc_update{}, Acc, _Context) ->
     Acc.
-
 
 observe_search_query({search_query, Req, OffsetLimit}, Context) ->
     search(Req, OffsetLimit, Context).
@@ -241,10 +245,24 @@ ensure(RscId, Type, Key, Context) ->
     m_identity:insert(RscId, Type, Key, Context).
 
 
+% Restrict which category resources have email identity records.
+% This should overlap with the categories that could authenticate.
+is_email_identity_category(Pre, Props, Context) ->
+    CatId = case proplists:get_value(category_id, Props) of
+        undefined -> proplists:get_value(category_id, Pre);
+        CId -> CId
+    end,
+    is_email_identity_category(m_category:is_a(CatId, Context)).
+
+is_email_identity_category(IsA) when is_list(IsA) ->
+    lists:member(person, IsA)
+    orelse lists:member(institution, IsA).
+
+
+
 %%====================================================================
 %% support functions
 %%====================================================================
-
 
 send_verification(RscId, IdnId, Context) ->
     case m_identity:get(IdnId, Context) of

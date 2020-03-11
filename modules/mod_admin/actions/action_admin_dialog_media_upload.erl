@@ -63,19 +63,25 @@ event(#submit{message={media_upload, EventProps}}, Context) ->
     case File of
         #upload{filename=OriginalFilename, tmpfile=TmpFile} ->
             Props = case proplists:get_value(id, EventProps) of
-                        undefined ->
-                            Lang = z_context:language(Context),
-                            Title = z_context:get_q("new_media_title", Context),
-                            NewTitle = case z_utils:is_empty(Title) of
-                                           true -> OriginalFilename;
-                                           false -> Title
-                                       end,
-                            [{title, {trans, [{Lang,NewTitle}]}},
-                             {language, [Lang]},
-                             {original_filename, OriginalFilename}];
-                        _ ->
-                            [{original_filename, OriginalFilename}]
-                    end,
+                undefined ->
+                    Lang = z_context:language(Context),
+                    Title = z_context:get_q("new_media_title", Context),
+                    NewTitle = case z_utils:is_empty(Title) of
+                                   true -> OriginalFilename;
+                                   false -> Title
+                               end,
+                    [
+                        {title, {trans, [{Lang,NewTitle}]}},
+                        {language, [Lang]},
+                        {is_published, z_convert:to_bool(z_context:get_q("is_published", Context, true))},
+                        {is_dependent, z_convert:to_bool(z_context:get_q("is_dependent", Context, false))},
+                        {original_filename, OriginalFilename}
+                    ];
+                _ ->
+                    [
+                        {original_filename, OriginalFilename}
+                    ]
+            end,
             handle_media_upload(EventProps, Context,
                                 %% insert fun
                                 fun(Ctx) -> m_media:insert_file(TmpFile, Props, Ctx) end,
@@ -89,7 +95,11 @@ event(#submit{message={media_url, EventProps}}, Context) ->
     Url = z_context:get_q("url", Context),
     Props = case proplists:get_value(id, EventProps) of
                 undefined ->
-                    [{title, z_context:get_q_validated("new_media_title_url", Context)}];
+                    [
+                        {title, z_context:get_q_validated("new_media_title_url", Context)},
+                        {is_published, z_convert:to_bool(z_context:get_q("is_published", Context, true))},
+                        {is_dependent, z_convert:to_bool(z_context:get_q("is_dependent", Context, false))}
+                    ];
                 _ ->
                     []
             end,
