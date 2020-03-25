@@ -1276,6 +1276,7 @@ email_max_domain(Domain) ->
 %% Some mail providers
 email_max_domain_1([<<"net">>, <<"upcmail">> | _]) -> 2;
 email_max_domain_1([<<"nl">>, <<"timing">> | _]) -> 2;
+email_max_domain_1([<<"org">>, <<"mailgun">> | _]) -> 20;
 email_max_domain_1(_) -> ?EMAIL_MAX_DOMAIN.
 
 %% @doc Simple header encoding.
