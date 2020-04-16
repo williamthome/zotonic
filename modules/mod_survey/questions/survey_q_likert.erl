@@ -48,7 +48,7 @@ prep_chart(_Block, [], _Context) ->
     undefined;
 prep_chart(Block, [{_, Vals}], Context) ->
     Labels = [
-        <<"5">>,<<"4">>,<<"3">>,<<"2">>,<<"1">>
+        5, 4, 3, 2, 1
     ],
     Agree = case proplists:get_value(agree, Block) of
         undefined -> ?__("Strongly Agree", Context);
@@ -61,13 +61,13 @@ prep_chart(Block, [{_, Vals}], Context) ->
         DisAg -> DisAg
     end,
     LabelsDisplay = [
-        [<<"5 ">>, z_trans:lookup_fallback(Agree, Context)],
+        iolist_to_binary([<<"5 ">>, z_trans:lookup_fallback(Agree, Context)]),
         <<"4">>,
         <<"3">>,
         <<"2">>,
-        [<<"1 ">>, z_trans:lookup_fallback(DisAgree, Context)]
+        iolist_to_binary([<<"1 ">>, z_trans:lookup_fallback(DisAgree, Context)])
     ],
-    Values = [ proplists:get_value(C, Vals, 0) || C <- Labels ],
+    Values = [ get_value(C, Vals, 0) || C <- Labels ],
     Sum = case lists:sum(Values) of 0 -> 1; N -> N end,
     Perc = [ round(V*100/Sum) || V <- Values ],
     [
@@ -76,6 +76,14 @@ prep_chart(Block, [{_, Vals}], Context) ->
         {type, "pie"},
         {data, [{L,P} || {L,P} <- lists:zip(LabelsDisplay, Perc), P /= 0]}
     ].
+
+get_value(C, Vals, Default) ->
+    case proplists:get_value(C, Vals) of
+        undefined ->
+            proplists:get_value(<<C>>, Vals, Default);
+        V ->
+            V
+    end.
 
 prep_answer_header(Block, _Context) ->
     proplists:get_value(name, Block).
