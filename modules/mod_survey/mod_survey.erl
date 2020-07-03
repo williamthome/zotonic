@@ -631,7 +631,7 @@ mail_result(SurveyId, PrepAnswers, SurveyResult, Context) ->
     end.
 
 mail_respondent(SurveyId, Answers, AnswerId, PrepAnswers, SurveyResult, IsEditing, Context) ->
-    case z_convert:to_bool(m_rsc:p_no_acl(SurveyId, survey_email_respondent, Context)) of
+    case IsEditing orelse z_convert:to_bool(m_rsc:p_no_acl(SurveyId, survey_email_respondent, Context)) of
         true ->
             EmailUser = case IsEditing of
                 false ->
