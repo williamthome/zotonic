@@ -68,6 +68,9 @@
     insert_unique/4,
     insert_unique/5,
 
+    insert_single/4,
+    insert_single/5,
+
 	set_verify_key/2,
     set_verified/2,
     set_verified/4,
@@ -92,6 +95,9 @@ m_find_value(Type, #m{value=lookup} = M, _Context) ->
     M#m{value={lookup, Type}};
 m_find_value(Key, #m{value={lookup, Type}}, Context) ->
     lookup_by_type_and_key_multi(Type, Key, Context);
+
+m_find_value(generate_password, #m{value=undefined}, _Context) ->
+    iolist_to_binary([ z_ids:id(5), $-, z_ids:id(5), $-, z_ids:id(5) ]);
 
 m_find_value(Id, #m{value=undefined} = M, _Context) ->
     M#m{value=Id};
@@ -877,4 +883,30 @@ check_hash(RscId, Username, Password, Hash, Context) ->
 check_hash_ok(RscId, Context) ->
     set_visited(RscId, Context),
     {ok, RscId}.
-    
+
+
+-spec insert_single(m_rsc:resource(), atom(), binary(), #context{}) ->
+    {ok, pos_integer()} | {error, invalid_key}.
+insert_single(Rsc, Type, Key, Context) ->
+    insert_single(Rsc, Type, Key, [], Context).
+
+insert_single(Rsc, Type, Key, Props, Context) ->
+    RscId = m_rsc:rid(Rsc, Context),
+    case insert(RscId, Type, Key, Props, Context) of
+        {ok, IdnId} ->
+            z_db:q("
+                delete from identity
+                where rsc_id = $1
+                  and type = $2
+                  and id <> $3",
+                [ RscId, Type, IdnId ],
+                Context),
+            flush(RscId, Context),
+            {ok, IdnId};
+        {error, _} = Error ->
+            Error
+    end.
+
+flush(Id, Context) ->
+    z_depcache:flush(Id, Context),
+    z_depcache:flush({idn, Id}, Context).
