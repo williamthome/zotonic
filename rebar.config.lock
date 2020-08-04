@@ -108,7 +108,7 @@
                    "d16a4fd968e000b65e4678cccfad68d7a0a8bd1c"}},
        {oauth,".*",
               {git,"https://github.com/tim/erlang-oauth.git",
-                   "3ad509d487a72f9437fef31a379bf3cfeeb166a2"}},
+                   "bd19896e31125f99ff45bb5850b1c0e74b996743"}},
        {termit,".*",
                {git,"https://github.com/erlangpack/termit",
                     "c1d0dde3b184a48f8253f0f3fd4b73a2eba4905e"}},
