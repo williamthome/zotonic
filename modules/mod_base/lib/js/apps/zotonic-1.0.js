@@ -1552,6 +1552,8 @@ function z_init_postback_forms()
     })
     .submit(function(event)
     {
+        event.preventDefault();
+
         theForm = this;
         z_editor_save(theForm);
 
