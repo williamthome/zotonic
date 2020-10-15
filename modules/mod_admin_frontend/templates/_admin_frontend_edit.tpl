@@ -5,6 +5,9 @@
 {% endjavascript %}
 
 {% block tinymce_init %}
+	{% javascript %}
+		tinymce.editors = new Array();
+	{% endjavascript %}
 	{% catinclude "_admin_frontend_tinymce_init.tpl" id tree_id=tree_id %}
 {% endblock %}
 
