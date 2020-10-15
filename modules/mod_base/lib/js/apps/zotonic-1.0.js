@@ -1558,8 +1558,6 @@ function z_init_postback_forms()
         z_editor_save(theForm);
 
         submitFunction = function(ev) {
-            var args = $(theForm).formToArray();
-
             try { $(theForm).mask("", 100); } catch (e) {}
 
             var postback    = $(theForm).data("z_submit_postback");
@@ -1594,6 +1592,7 @@ function z_init_postback_forms()
             }
             else
             {
+                var args        = $(theForm).formToArray();
                 var cookie_form = $(theForm).hasClass("z_cookie_form") || $(theForm).hasClass("z_logon_form");
                 if (typeof(z_only_post_forms) != "undefined" && z_only_post_forms)
                 {

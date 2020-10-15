@@ -19,8 +19,8 @@ $(function() {
 		var href = $(this).attr('href');
 		var m = href && href.match(/\/(..\/)?admin\/edit\/([0-9]+)$/);
 		if (m) {
-			confirm_unsaved("#edit_id="+m[2]);
 			evt.preventDefault();
+			confirm_unsaved("#edit_id="+m[2]);
 		}
 	});
 
@@ -41,10 +41,14 @@ $(function() {
 
 	function hashchange()
 	{
-		if (window.location.hash) {
-			z_dialog_close();
-			$('#rscform').mask();
+		z_dialog_close();
 
+		if ($('#rscform').length > 0) {
+			$('#rscform').mask();
+			z_editor_remove($('#rscform'));
+		}
+
+		if (window.location.hash) {
 			var query = window.location.hash.substring(1);
 			var vars = query.split('&');
 			var args = {};
