@@ -295,7 +295,7 @@ video_info(Path) ->
     JSONText = z_convert:to_binary(os:cmd(FfprobeCmd)),
     try
         {struct, Ps} = decode_json(JSONText),
-        io:format("~p~n~n", [ Ps ]),
+        % io:format("~p~n~n", [ Ps ]),
         {Width, Height, Orientation} = fetch_size(Ps),
         [
             {duration, fetch_duration(Ps)},
