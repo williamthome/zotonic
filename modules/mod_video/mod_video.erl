@@ -61,12 +61,17 @@ observe_media_upload_preprocess(#media_upload_preprocess{mime="video/mp4", file=
     undefined;
 observe_media_upload_preprocess(#media_upload_preprocess{mime="video/x-mp4-broken"}, Context) ->
     do_media_upload_broken(Context);
-observe_media_upload_preprocess(#media_upload_preprocess{mime="video/"++_, medium=Medium} = Upload, Context) ->
+observe_media_upload_preprocess(#media_upload_preprocess{mime="video/"++_, medium=Medium, file=File} = Upload, Context) ->
     case proplists:get_value(is_video_ok, Medium) of
         true ->
             undefined;
         undefined ->
-            do_media_upload_preprocess(Upload, Context)
+            case is_video_process_needed(File) of
+                true ->
+                    do_media_upload_preprocess(Upload, Context);
+                false ->
+                    undefined
+            end
     end;
 observe_media_upload_preprocess(#media_upload_preprocess{}, _Context) ->
     undefined.
@@ -251,6 +256,36 @@ queue_path(Filename, Context) ->
     QueueDir = z_path:files_subdir("video_queue", Context),
     filename:join(QueueDir, Filename).
 
+
+is_video_process_needed(File) ->
+    Info = video_info(File),
+    not (
+                is_orientation_ok(Info)
+        andalso is_audio_ok(Info)
+        andalso is_video_ok(Info)
+    ).
+
+is_orientation_ok(Info) ->
+    case proplists:get_value(orientation, Info) of
+        undefined -> true;
+        1 -> true;
+        _ -> false
+    end.
+
+is_audio_ok(Info) ->
+    case proplists:get_value(audio_codec, Info) of
+        undefined -> true;
+        <<"aac">> -> true;
+        _ -> false
+    end.
+
+is_video_ok(Info) ->
+    case proplists:get_value(video_codec, Info) of
+        undefined -> true;
+        <<"h264">> -> true;
+        _ -> false
+    end.
+
 video_info(Path) ->
     FfprobeCmd = lists:flatten([
             "ffprobe -loglevel quiet -show_format -show_streams -print_format json ",
@@ -260,12 +295,17 @@ video_info(Path) ->
     JSONText = z_convert:to_binary(os:cmd(FfprobeCmd)),
     try
         {struct, Ps} = decode_json(JSONText),
+        io:format("~p~n~n", [ Ps ]),
         {Width, Height, Orientation} = fetch_size(Ps),
         [
             {duration, fetch_duration(Ps)},
             {width, Width},
             {height, Height},
-            {orientation, Orientation}
+            {orientation, Orientation},
+            {bitrate, fetch_bitrate(Ps)},
+            {size, fetch_datasize(Ps)},
+            {audio_codec, fetch_codec(Ps, <<"audio">>)},
+            {video_codec, fetch_codec(Ps, <<"video">>)}
         ]
     catch
         error:E ->
@@ -305,6 +345,35 @@ fetch_size(Ps) ->
         _ -> {Width, Height, Orientation}
     end.
 
+fetch_bitrate(Ps) ->
+    case proplists:get_value(<<"format">>, Ps) of
+        {struct, Fs} ->
+            Bitrate = proplists:get_value(<<"bit_rate">>, Fs),
+            z_convert:to_integer(Bitrate);
+        undefined ->
+            0
+    end.
+
+fetch_datasize(Ps) ->
+    case proplists:get_value(<<"format">>, Ps) of
+        {struct, Fs} ->
+            Size = proplists:get_value(<<"size">>, Fs),
+            z_convert:to_integer(Size);
+        undefined ->
+            0
+    end.
+
+fetch_codec(Ps, Type) ->
+    Streams = proplists:get_value(<<"streams">>, Ps),
+    fetch_codec_1(Streams, Type).
+
+fetch_codec_1([ {struct, S} | Streams ], Type) ->
+    case proplists:get_value(<<"codec_type">>, S) of
+        Type -> proplists:get_value(<<"codec_name">>, S);
+        _ -> fetch_codec_1(Streams, Type)
+    end;
+fetch_codec_1([], _Type) ->
+    undefined.
 
 orientation({struct, Tags}) ->
     case proplists:get_value(<<"rotate">>, Tags) of
