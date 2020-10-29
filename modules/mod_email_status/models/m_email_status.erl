@@ -403,7 +403,8 @@ mark_bounced(Email0, Context) ->
     maybe_notify(Email, IsValid, false, true, false, Context),
     ok.
 
-maybe_notify(_Email, IsValid, IsValid, false, _IsManual, _Context) ->
+maybe_notify(Email, IsValid, IsValid, false, _IsManual, Context) ->
+    z_depcache:flush({email_valid, Email}, Context),
     ok;
 maybe_notify(Email, _OldIsValid, IsValid, IsFinal, IsManual, Context) ->
     z_depcache:flush({email_valid, Email}, Context),
