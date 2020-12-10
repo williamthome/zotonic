@@ -76,8 +76,8 @@
 		   	%}
 				<tr style="border-top: 1px solid #ccc">
 					<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
-						{% if blk.question.prompt %}
-							{{ blk.question.prompt }}
+						{% if blk.prompt %}
+							{{ blk.prompt }}
 						{% else %}
 							{{ blk.name|force_escape }}
 						{% endif %}
