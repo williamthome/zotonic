@@ -61,50 +61,73 @@
 	{% endif %}
 {% endblock %}
 
-{% if result %}
-	{% for blk in id.blocks %}
-	    {% if blk.is_hide_result %}
-	        {# Nothing #}
-	    {% elseif blk.name != 'survey_feedback' and blk.type != 'survey_page_break' %}
-	        {% optional include "blocks/_block_view_"++blk.type++".tpl" blk=blk is_survey_answer_view result=result %}
-	        {% if not forloop.last %}
-	            <div style="margin: 10px 0; border-bottom: 1px solid #eee;"></div>
-	        {% endif %}
-	    {% endif %}
-	{% endfor %}
-{% else %}
-	<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin-bottom: 18px;">
-		<tr>
-			<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Question _}</th>
-			<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Answer _}</th>
-		</tr>
-	{% for name, ans in answers %}
-		{% with id.blocks[name] as blk %}
-			{% if not blk.is_hide_result %}
+<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin-bottom: 18px;">
+	<tr>
+		<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Question _}</th>
+		<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Answer _}</th>
+	</tr>
+	{% if result %}
+		{% for blk in id.blocks %}
+		    {% if blk.is_hide_result %}
+		        {# Nothing #}
+		    {% elseif blk.type|match:"^survey_.*"
+		    	  and blk.type != 'survey_page_break'
+		    	  and blk.name != 'survey_feedback'
+		   	%}
 				<tr style="border-top: 1px solid #ccc">
 					<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
-						{% if ans.question.prompt %}
-							{{ ans.question.prompt }}
+						{% if blk.question.prompt %}
+							{{ blk.question.prompt }}
 						{% else %}
-							{{ name|force_escape }}
+							{{ blk.name|force_escape }}
 						{% endif %}
 					</td>
-					<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
-						{% if blk.type == 'survey_narrative' %}
-				            {% optional include "blocks/_block_view_survey_narrative.tpl" blk=blk is_survey_answer_view result=answers %}
-			            {% elseif ans.answer_text|is_list %}
-							{% for v in ans.answer_text %}
-								{{ v }}{% if not forloop.last %}<br/>{% endif %}
-							{% endfor %}
-						{% else %}
-							{{ ans.answer_text }}
-						{% endif %}
+					<td>
+					    {% if blk.type == 'survey_narrative' %}
+							{% optional include "blocks/_block_view_"++blk.type++".tpl" blk=blk is_survey_answer_view result=result %}
+					    {% else %}
+					    	{% with answers[blk.name] as ans %}
+					            {% if ans.answer_text|is_list %}
+									{% for v in ans.answer_text %}
+										{{ v }}{% if not forloop.last %}<br/>{% endif %}
+									{% endfor %}
+								{% else %}
+									{{ ans.answer_text }}
+								{% endif %}
+							{% endwith %}
+					    {% endif %}
 					</td>
 				</tr>
 			{% endif %}
-		{% endwith %}
-	{% endfor %}
-	</table>
-{% endif %}
+		{% endfor %}
+	{% else %}
+		{% for name, ans in answers %}
+			{% with id.blocks[name] as blk %}
+				{% if not blk.is_hide_result %}
+					<tr style="border-top: 1px solid #ccc">
+						<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
+							{% if ans.question.prompt %}
+								{{ ans.question.prompt }}
+							{% else %}
+								{{ name|force_escape }}
+							{% endif %}
+						</td>
+						<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
+							{% if blk.type == 'survey_narrative' %}
+					            {% optional include "blocks/_block_view_survey_narrative.tpl" blk=blk is_survey_answer_view result=answers %}
+				            {% elseif ans.answer_text|is_list %}
+								{% for v in ans.answer_text %}
+									{{ v }}{% if not forloop.last %}<br/>{% endif %}
+								{% endfor %}
+							{% else %}
+								{{ ans.answer_text }}
+							{% endif %}
+						</td>
+					</tr>
+				{% endif %}
+			{% endwith %}
+		{% endfor %}
+	{% endif %}
+</table>
 
 {% endblock %}
