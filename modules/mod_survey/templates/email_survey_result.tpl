@@ -63,7 +63,7 @@
 
 <table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin-bottom: 18px;">
 	<tr>
-		<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Question _}</th>
+		<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd; max-width:45%;">{_ Question _}</th>
 		<th style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">{_ Answer _}</th>
 	</tr>
 	{% if result %}
@@ -75,7 +75,7 @@
 		    	  and blk.name != 'survey_feedback'
 		   	%}
 				<tr style="border-top: 1px solid #ccc">
-					<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
+					<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd; max-width:45%;">
 						{% if blk.prompt %}
 							{{ blk.prompt }}
 						{% else %}
@@ -105,7 +105,7 @@
 			{% with id.blocks[name] as blk %}
 				{% if not blk.is_hide_result %}
 					<tr style="border-top: 1px solid #ccc">
-						<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;">
+						<td valign="top" style="padding: 8px; line-height: 18px; text-align: left; vertical-align: top; border-top: 1px solid #dddddd;max-width:45%;">
 							{% if ans.question.prompt %}
 								{{ ans.question.prompt }}
 							{% else %}
