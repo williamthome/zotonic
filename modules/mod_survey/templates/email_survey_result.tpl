@@ -84,7 +84,7 @@
 					</td>
 					<td>
 					    {% if blk.type == 'survey_narrative' %}
-							{% optional include "blocks/_block_view_"++blk.type++".tpl" blk=blk is_survey_answer_view result=result %}
+							{% optional include "blocks/_block_view_"++blk.type++".tpl" blk=blk is_survey_answer_view result=result is_hide_prompt %}
 					    {% else %}
 					    	{% with answers[blk.name] as ans %}
 					            {% if ans.answer_text|is_list %}
