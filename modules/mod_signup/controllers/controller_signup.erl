@@ -109,7 +109,7 @@ event(#submit{message={signup, Args}, form="signup_form"}, Context) ->
                         true -> SignupProps
                       end
             end,
-            signup(Props, SignupProps1, RequestConfirm, Context);
+            signup(Args, Props, SignupProps1, RequestConfirm, Context);
         false ->
             show_errors([error_tos_agree], Context)
     end.
@@ -141,12 +141,12 @@ has_email_identity(Email, [_|Rest]) -> has_email_identity(Email, Rest).
 
 
 %% @doc Sign up a new user. Check if the identity is available.
-signup(Props, SignupProps, RequestConfirm, Context) ->
+signup(Args, Props, SignupProps, RequestConfirm, Context) ->
     UserId = proplists:get_value(user_id, SignupProps),
     SignupProps1 = proplists:delete(user_id, SignupProps),
     case mod_signup:signup_existing(UserId, Props, SignupProps1, RequestConfirm, Context) of
         {ok, NewUserId} ->
-            handle_confirm(NewUserId, SignupProps1, RequestConfirm, Context);
+            handle_confirm(NewUserId, Args, SignupProps1, RequestConfirm, Context);
         {error, {identity_in_use, username}} ->
             show_errors([error_duplicate_username], Context);
         {error, {identity_in_use, _}} ->
@@ -159,7 +159,7 @@ signup(Props, SignupProps, RequestConfirm, Context) ->
 
 
 %% Handle sending a confirm, or redirect to the 'ready_page' location
-handle_confirm(UserId, SignupProps, RequestConfirm, Context) ->
+handle_confirm(UserId, Args, SignupProps, RequestConfirm, Context) ->
     case not RequestConfirm orelse m_identity:is_verified(UserId, Context) of
         true ->
             ensure_published(UserId, z_acl:sudo(Context)),
@@ -183,9 +183,14 @@ handle_confirm(UserId, SignupProps, RequestConfirm, Context) ->
                 ok ->
                     % Show feedback that we sent a confirmation message
                     Context1 = show_errors([], Context),
-                    z_render:wire([ {hide, [{target, "signup_area"}]},
-                                    {show, [{target, "signup_verify"}]},
-                                    {redirect, [{location, "#signup_verify"}]}], Context1)
+                    case proplists:all_values(on_success, Args) of
+                        [] ->
+                            z_render:wire([ {hide, [{target, "signup_area"}]},
+                                            {show, [{target, "signup_verify"}]},
+                                            {redirect, [{location, "#signup_verify"}]}], Context1);
+                        Actions ->
+                            z_render:wire(Actions, Context1)
+                    end
             end
     end.
 
