@@ -183,7 +183,7 @@ handle_confirm(UserId, Args, SignupProps, RequestConfirm, Context) ->
                 ok ->
                     % Show feedback that we sent a confirmation message
                     Context1 = show_errors([], Context),
-                    case proplists:all_values(on_success, Args) of
+                    case proplists:get_all_values(on_success, Args) of
                         [] ->
                             z_render:wire([ {hide, [{target, "signup_area"}]},
                                             {show, [{target, "signup_verify"}]},
