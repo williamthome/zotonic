@@ -99,7 +99,7 @@ event(#postback{message={identity_verify_confirm, Args}}, Context) ->
             z_render:wire({confirm, [
                             {text, [
                                     ?__("This will send a verification e-mail to ", Context),
-                                    proplists:get_value(key, Idn), $.
+                                    z_html:escape( proplists:get_value(key, Idn) ), $.
                                 ]},
                             {ok, ?__("Send", Context)},
                             {action, {postback, [

@@ -85,7 +85,8 @@ event(#submit{message={signup, Args}, form="signup_form"}, Context) ->
     case Agree of
         true ->
             {email, Email} = proplists:lookup(email, Props),
-            RequestConfirm = z_convert:to_bool(m_config:get_value(mod_signup, request_confirm, true, Context)),
+            ConfigRequestConfirm = m_config:get_value(mod_signup, request_confirm, true, Context),
+            RequestConfirm = z_convert:to_bool(proplists:get_value(request_confirm, Args, ConfigRequestConfirm)),
             SignupProps = case is_set(XsSignupProps) of
                               true ->
                                   XsSignupProps;

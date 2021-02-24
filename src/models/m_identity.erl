@@ -43,6 +43,9 @@
     get_rsc_by_type/3,
     get_rsc/3,
 
+    is_email_verified/1,
+    is_email_verified/2,
+
     is_valid_key/3,
     normalize_key/2,
 
@@ -99,6 +102,9 @@ m_find_value(Key, #m{value={lookup, Type}}, Context) ->
 m_find_value(generate_password, #m{value=undefined}, _Context) ->
     iolist_to_binary([ z_ids:id(5), $-, z_ids:id(5), $-, z_ids:id(5) ]);
 
+m_find_value(is_email_verified, #m{value=undefined}, Context) ->
+    is_email_verified(Context);
+
 m_find_value(Id, #m{value=undefined} = M, _Context) ->
     M#m{value=Id};
 m_find_value(is_user, #m{value=RscId}, Context) ->
@@ -119,6 +125,7 @@ m_find_value(Type, #m{value=RscId}, Context) ->
     get_rsc(RscId, Type, Context).
 
 
+
 %% @doc Transform a m_config value to a list, used for template loops
 %% @spec m_to_list(Source, Context) -> List
 m_to_list(#m{value={all, RscId}}, Context) ->
@@ -133,6 +140,26 @@ m_value(#m{value=undefined}, _Context) ->
 m_value(#m{value=V}, _Context) ->
     V.
 
+%% @doc Check if the primary email address of the user is verified.
+is_email_verified(Context) ->
+    is_email_verified(z_acl:user(Context), Context).
+
+is_email_verified(UserId, Context) ->
+    case m_rsc:p_no_acl(UserId, email_raw, Context) of
+        undefined -> false;
+        <<>> -> false;
+        Email ->
+            z_convert:to_bool(
+                z_db:q1("
+                    select is_verified
+                    from identity
+                    where rsc_id = $1
+                      and type = $2
+                      and key = $3",
+                   [UserId, <<"email">>, Email],
+                   Context)
+            )
+    end.
 
 %% @doc Check if the resource has any credentials that will make him/her an user
 is_user(Id, Context) ->
