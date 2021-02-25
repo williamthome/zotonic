@@ -95,6 +95,17 @@
               .addClass("modal-dialog")
               .append($modalContent);
 
+            width = options.width;
+            if (width) {
+                if (width === 'large') {
+                    $modalDialog.addClass('modal-lg');
+                } else if (width === 'small') {
+                    $modalDialog.addClass('modal-sm');
+                } else {
+                    $modalDialog.css({'width': width + 'px'});
+                }
+            }
+
             $dialog = $("<div>")
               .attr("id", "zmodal")
               .addClass(dialogClass)
@@ -105,14 +116,14 @@
               .modal({backdrop: options.backdrop})
               .css({"overflow-x": "hidden", "overflow-y": "auto"});
 
-            if (width > 0) {
-                $dialog.css({
-                    width: width,
-                    'margin-left': function () {
-                        return -($(this).width() / 2);
-                    }
-                });
-            }
+            // if (width > 0) {
+            //     $dialog.css({
+            //         width: width,
+            //         'margin-left': function () {
+            //             return -($(this).width() / 2);
+            //         }
+            //     });
+            // }
 
             this.dialogReposition();
 
