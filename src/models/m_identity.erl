@@ -149,16 +149,23 @@ is_email_verified(UserId, Context) ->
         undefined -> false;
         <<>> -> false;
         Email ->
-            z_convert:to_bool(
-                z_db:q1("
-                    select is_verified
-                    from identity
-                    where rsc_id = $1
-                      and type = $2
-                      and key = $3",
-                   [UserId, <<"email">>, Email],
-                   Context)
-            )
+            z_depcache:memo(
+                fun() ->
+                    E = normalize_key(email, Email),
+                    z_convert:to_bool(
+                        z_db:q1("
+                            select is_verified
+                            from identity
+                            where rsc_id = $1
+                              and type = $2
+                              and key = $3",
+                           [UserId, <<"email">>, E],
+                           Context) )
+                end,
+                {emaiL_verified, UserId},
+                3600,
+                [ UserId ],
+                Context)
     end.
 
 %% @doc Check if the resource has any credentials that will make him/her an user
@@ -560,7 +567,7 @@ get_rsc_types(Id, Context) ->
 %% @doc Fetch all credentials belonging to the user "id" and of a certain type
 get_rsc_by_type(Id, email, Context) ->
     Idns = get_rsc_by_type_1(Id, email, Context),
-    case normalize_key(email, m_rsc:p_no_acl(Id, email, Context)) of
+    case normalize_key(email, m_rsc:p_no_acl(Id, email_raw, Context)) of
         undefined ->
             Idns;
         Email ->
@@ -685,6 +692,7 @@ set_verified(Id, Context) ->
                    Context)
             of
                 1 ->
+                    z_depcache:flush(RscId, Context),
                     z_mqtt:publish(["~site", "rsc", RscId, "identity"], {identity, Type}, Context),
                     ok;
                 0 ->
@@ -702,6 +710,7 @@ set_verified(RscId, Type, Key, Context)
          Key =/= undefined, Key =/= <<>>, Key =/= [] ->
     Result = z_db:transaction(fun(Ctx) -> set_verified_trans(RscId, Type, Key, Ctx) end, Context),
     z_mqtt:publish(["~site", "rsc", RscId, "identity"], {identity, Type}, Context),
+    z_depcache:flush(RscId, Context),
     Result;
 set_verified(_RscId, _Type, _Key, _Context) ->
     {error, badarg}.
