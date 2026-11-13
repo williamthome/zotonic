@@ -371,7 +371,8 @@ listener_options(Family, WebIp, Opts) ->
         metrics_callback => fun zotonic_listen_http_metrics:metrics_callback/1,
         metrics_resp_headers_filter => fun zotonic_listen_http_metrics:resp_headers_filter/1,
         metrics_req_filter => fun zotonic_listen_http_metrics:req_filter/1,
-        env => #{}
+        env => #{},
+        options => z_config:get(http_server_options)
     }, bind_options(Family, WebIp)).
 
 bind_options(inet, any) -> #{};
