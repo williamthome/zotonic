@@ -21,7 +21,7 @@ isolated(Tests) ->
             end}
         end}.
 
--spec request(Overrides) -> cowboy_req:req() when
+-spec request(Overrides) -> cowmachine_cowreq:req() when
     Overrides :: map().
 request(Overrides) ->
     maps:merge(#{

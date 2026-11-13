@@ -34,7 +34,7 @@
 %% @doc Call cowmachine to handle the request with the given controller. Prepare the
 %%      metadata for logger and set the relevant Context arguments.
 -spec execute(Req, Env) -> {ok, Req, Env} | {stop, Req}
-    when Req::cowboy_req:req(), Env::cowboy_middleware:env().
+    when Req::cowmachine_cowreq:req(), Env::cowboy_middleware:env().
 execute(Req, #{ cowmachine_controller := Controller, cowmachine_controller_options := ControllerOpts } = Env) ->
     Req1 = maybe_overrule_req_headers(Req),
     Context = maps:get(cowmachine_context, Env),
@@ -80,7 +80,7 @@ execute(Req, #{ cowmachine_controller := Controller, cowmachine_controller_optio
     GuardContext = guard_context(Context5, Req1, Env),
     case z_context:get(request_guard_response, GuardContext) of
         {Status, Body} when is_integer(Status), Status >= 400, Status =< 599, is_binary(Body) ->
-            {stop, cowboy_req:reply(Status, #{}, Body, z_context:get_reqdata(GuardContext))};
+            {stop, cowmachine_cowreq:reply(Status, #{}, Body, z_context:get_reqdata(GuardContext))};
         _ -> cowmachine:request(cowmachine_req:set_env(Env, GuardContext), Options)
     end.
 
