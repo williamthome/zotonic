@@ -10,7 +10,7 @@
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.18.0">>},1},
  {<<"cowmachine">>,
   {git,"https://github.com/williamthome/cowmachine.git",
-       {ref,"880135e270a90b99e0814698e30dca131fb1c584"}},
+       {ref,"af89b7bbc59f56c56b60c5fcab086320ad677ae5"}},
   0},
  {<<"depcache">>,{pkg,<<"depcache">>,<<"2.1.1">>},0},
  {<<"dh_date">>,{pkg,<<"dh_date">>,<<"1.0.0">>},0},
