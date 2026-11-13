@@ -284,7 +284,7 @@ set_server_names(#context{ site = Site } = Context) ->
 
 
 %% @doc Return the site name for the context or request.
--spec site(z:context() | cowboy_req:req()) -> atom().
+-spec site(z:context() | cowmachine_cowreq:req()) -> atom().
 site(#context{site=Site}) ->
     Site;
 site(Req) when is_map(Req) ->
@@ -635,12 +635,12 @@ ensure_request_context(#context{props = Props} = Context) ->
 
 
 %% @doc Return the cowmachine request data of the context
--spec get_reqdata(z:context()) -> cowboy_req:req() | undefined.
+-spec get_reqdata(z:context()) -> cowmachine_cowreq:req() | undefined.
 get_reqdata(Context) ->
     Context#context.cowreq.
 
 %% @doc Set the cowmachine request data of the context
--spec set_reqdata(cowboy_req:req() | undefined, z:context()) -> z:context().
+-spec set_reqdata(cowmachine_cowreq:req() | undefined, z:context()) -> z:context().
 set_reqdata(Req, Context) when is_map(Req); Req =:= undefined ->
     Context#context{ cowreq = Req }.
 
@@ -655,7 +655,7 @@ set_envdata(Env, Context) when is_map(Env); Env =:= undefined ->
     Context#context{ cowenv = Env }.
 
 %% @doc Set the cowmachine request data of the context
--spec init_cowdata(cowboy_req:req(), cowboy_middleware:env(), z:context()) -> z:context().
+-spec init_cowdata(cowmachine_cowreq:req(), cowboy_middleware:env(), z:context()) -> z:context().
 init_cowdata(Req, Env, Context) when is_map(Req); Req =:= undefined ->
     Context#context{
         cowreq = Req,
@@ -1431,7 +1431,7 @@ get_req_path(#context{cowreq=Req} = Context) when is_map(Req) ->
 %% @doc Add metrics data to the Cowboy request, will be added to the metrics notifications.
 -spec set_req_metrics( map(), z:context() ) -> ok.
 set_req_metrics(Metrics, #context{ cowreq = Req }) when is_map(Req), is_map(Metrics) ->
-    cowboy_req:cast({set_options, #{ metrics_user_data => Metrics }}, Req),
+    cowmachine_cowreq:set_options(#{ metrics_user_data => Metrics }, Req),
     ok;
 set_req_metrics(_Metrics, _Context) ->
     ok.

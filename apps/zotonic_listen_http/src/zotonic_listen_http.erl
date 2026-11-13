@@ -110,7 +110,7 @@ terminate(_Why, init) ->
 -spec stop_http_listeners() -> ok.
 stop_http_listeners() ->
     lists:foreach(
-            fun cowboy:stop_listener/1,
+            fun cowmachine_server:stop_listener/1,
             [ zotonic_http_listener_ipv4,
               zotonic_https_listener_ipv4,
               zotonic_http_listener_ipv6,
@@ -137,23 +137,14 @@ start_http_listeners_ip4(_WebIp, none) ->
     ?LOG_WARNING("HTTP IPv4 server disabled: listen_port is set to 'none'"),
     ok;
 start_http_listeners_ip4(WebIp, WebPort) ->
-    WebOpt = case WebIp of
-        any -> [];
-        _ -> [{ip, WebIp}]
-    end,
-    case cowboy:start_clear(
+    case cowmachine_server:start_listener(
         zotonic_http_listener_ipv4,
-        #{
+        listener_options(inet, WebIp, #{
+            port => WebPort,
             max_connections => z_config:get(max_connections),
             num_acceptors => z_config:get(inet_acceptor_pool_size),
-            socket_opts => [
-                inet,
-                {port, WebPort},
-                {backlog, z_config:get(inet_backlog)}
-                | WebOpt
-            ]
-        },
-        cowboy_options())
+            backlog => z_config:get(inet_backlog)
+        }))
     of
         {ok, _} ->
             ?LOG_NOTICE(#{
@@ -203,24 +194,15 @@ start_https_listeners_ip4(_WebIp, none) ->
     ?LOG_WARNING("HTTPS IPv4 server disabled: 'ssl_listen_port' is set to 'none'"),
     ok;
 start_https_listeners_ip4(WebIp, SSLPort) ->
-    WebOpt = case WebIp of
-        any -> [];
-        _ -> [{ip, WebIp}]
-    end,
-    case cowboy:start_tls(
+    case cowmachine_server:start_listener(
         zotonic_https_listener_ipv4,
-        #{
+        listener_options(inet, WebIp, #{
+            port => SSLPort,
+            tls => z_ssl_certs:ssl_listener_options(),
             max_connections => z_config:get(ssl_max_connections),
             num_acceptors => z_config:get(ssl_acceptor_pool_size),
-            socket_opts => [
-                inet,
-                {port, SSLPort},
-                {backlog, z_config:get(ssl_backlog)}
-            ]
-            ++ z_ssl_certs:ssl_listener_options()
-            ++ WebOpt
-        },
-        cowboy_options())
+            backlog => z_config:get(ssl_backlog)
+        }))
     of
         {ok, _} ->
             ?LOG_NOTICE(#{
@@ -268,24 +250,14 @@ start_http_listeners_ip6(none, _WebPort) ->
 start_http_listeners_ip6(_WebIp, none) ->
     ok;
 start_http_listeners_ip6(WebIp, WebPort) ->
-    WebOpt = case WebIp of
-        any -> [];
-        _ -> [{ip, WebIp}]
-    end,
-    case cowboy:start_clear(
+    case cowmachine_server:start_listener(
         zotonic_http_listener_ipv6,
-        #{
+        listener_options(inet6, WebIp, #{
+            port => WebPort,
             max_connections => z_config:get(max_connections),
             num_acceptors => z_config:get(inet_acceptor_pool_size),
-            socket_opts => [
-                inet6,
-                {ipv6_v6only, true},
-                {port, WebPort},
-                {backlog, z_config:get(inet_backlog)}
-            ]
-            ++ WebOpt
-        },
-        cowboy_options())
+            backlog => z_config:get(inet_backlog)
+        }))
     of
         {ok, _} ->
             ?LOG_NOTICE(#{
@@ -333,25 +305,15 @@ start_https_listeners_ip6(none, _SSLPort) ->
 start_https_listeners_ip6(_WebIp, none) ->
     ok;
 start_https_listeners_ip6(WebIp, SSLPort) ->
-    WebOpt = case WebIp of
-        any -> [];
-        _ -> [{ip, WebIp}]
-    end,
-    case cowboy:start_tls(
+    case cowmachine_server:start_listener(
         zotonic_https_listener_ipv6,
-        #{
+        listener_options(inet6, WebIp, #{
+            port => SSLPort,
+            tls => z_ssl_certs:ssl_listener_options(),
             max_connections => z_config:get(ssl_max_connections),
             num_acceptors => z_config:get(ssl_acceptor_pool_size),
-            socket_opts => [
-                inet6,
-                {ipv6_v6only, true},
-                {port, SSLPort},
-                {backlog, z_config:get(ssl_backlog)}
-            ]
-            ++ z_ssl_certs:ssl_listener_options()
-            ++ WebOpt
-        },
-        cowboy_options())
+            backlog => z_config:get(ssl_backlog)
+        }))
     of
         {ok, _} ->
             ?LOG_NOTICE(#{
@@ -396,16 +358,27 @@ start_https_listeners_ip6(WebIp, SSLPort) ->
 ip_to_string(any) -> "any";
 ip_to_string(IP) -> inet:ntoa(IP).
 
-cowboy_options() ->
-    #{
+%% @doc The options of a listener on cowmachine's server (cowmachine_server):
+%% the request handling every listener shares, and the address it binds. An
+%% IPv6 listener serves IPv6 only, so that it shares its port with the IPv4
+%% listener.
+-spec listener_options(inet | inet6, any | inet:ip_address(), map()) ->
+    cowmachine_server:listener_opts().
+listener_options(Family, WebIp, Opts) ->
+    maps:merge(Opts#{
         middlewares => [ cowmachine_proxy, z_sites_dispatcher, z_cowmachine_middleware ],
-        stream_handlers => [ cowboy_metrics_h, cowboy_stream_h ],
         request_timeout => ?HTTP_REQUEST_TIMEOUT,
         metrics_callback => fun zotonic_listen_http_metrics:metrics_callback/1,
         metrics_resp_headers_filter => fun zotonic_listen_http_metrics:resp_headers_filter/1,
         metrics_req_filter => fun zotonic_listen_http_metrics:req_filter/1,
-        env => #{}
-    }.
+        env => #{},
+        options => z_config:get(http_server_options)
+    }, bind_options(Family, WebIp)).
+
+bind_options(inet, any) -> #{};
+bind_options(inet, IP) -> #{ ip => IP };
+bind_options(inet6, any) -> #{ ip => {0, 0, 0, 0, 0, 0, 0, 0}, ipv6_v6only => true };
+bind_options(inet6, IP) -> #{ ip => IP, ipv6_v6only => true }.
 
 %% @todo Exclude platforms that do not support raw ipv6 socket options
 -spec ipv6_supported() -> boolean().

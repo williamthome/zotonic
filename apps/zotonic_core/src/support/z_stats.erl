@@ -204,11 +204,11 @@ report_skipped(Count) -> record_count(stats, skipped, Count, zotonic).
 %%     resp_status_category => StatusCategory,
 %%     req_bytes => ReqBodyLength,
 %%     resp_bytes => RespBodyLength,
-%%     http_version => cowboy_req:version(Req),
-%%     method => cowboy_req:method(Req),
-%%     path => cowboy_req:path(Req),
-%%     user_agent => cowboy_req:header(<<"user-agent">>, Req),
-%%     referer => cowboy_req:header(<<"referer">>, Req),
+%%     http_version => cowmachine_cowreq:version(Req),
+%%     method => cowmachine_cowreq:method(Req),
+%%     path => cowmachine_cowreq:path(Req),
+%%     user_agent => cowmachine_cowreq:header(<<"user-agent">>, Req),
+%%     referer => cowmachine_cowreq:header(<<"referer">>, Req),
 %%     metrics => UserData#{ peer_ip => PeerIP }
 %% }
 %% '''

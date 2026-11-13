@@ -110,6 +110,13 @@
         {disk_almost_full_threshold, 0.9}
     ]},
 
+    %% The HTTP server the HTTP and HTTPS listeners run on, Cowboy by default.
+    %% Name another cowmachine server module (cowmachine_server) here, and add
+    %% its application to the release, to run them on that server.
+    % {cowmachine, [
+    %     {server, cowmachine_server_cowboy}
+    % ]},
+
     %%% The directories below will be set according to the log_dir, data_dir and cache_dir
 
     % {setup, [

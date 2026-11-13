@@ -270,6 +270,13 @@
 %%% When this value is not set, the inet_acceptor_pool_size setting is used.
    %% {ssl_acceptor_pool_size, 75},
 
+%%% Options for the HTTP server the HTTP and HTTPS listeners run on, the cowmachine server
+%%% named in erlang.config (Cowboy by default). They are that server's own options: Cowboy's
+%%% protocol options by default. Change them with the server. The listener's other settings
+%%% (ports, backlog, acceptors, connections, TLS) come from the keys above, so leave
+%%% middlewares, env, request_timeout and the metrics out of these options.
+   %% {http_server_options, #{}},
+
 %%% The access log is sent to syslog. The collection of access logs to files must be configured
 %%% by configuring syslog on the system. See syslogd(8) on Linux, or the appropriate documentation
 %%% of your host system.

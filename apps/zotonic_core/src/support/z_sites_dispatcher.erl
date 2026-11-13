@@ -187,11 +187,11 @@ update_hosts() ->
 %%      requests a redirect or return a 400 on an unknown host.
 %%      The cowmachine_proxy middleware must have been called before this.
 -spec execute(Req, Env) -> Result when
-    Req :: cowboy_req:req(),
+    Req :: cowmachine_cowreq:req(),
     Env :: cowboy_middleware:env(),
     Result :: {ok, Req1, Env1}
             | {stop, Req1},
-    Req1 :: cowboy_req:req(),
+    Req1 :: cowmachine_cowreq:req(),
     Env1 :: cowboy_middleware:env().
 execute(Req, Env) ->
     case dispatch(Req, Env) of
@@ -232,7 +232,7 @@ execute(Req, Env) ->
                 site => z_context:site(Context)
             },
             cast_metrics_data(Metrics, Req),
-            handle_error(404, cowboy_req:method(Req), Site, Req, Env, Bindings, Context);
+            handle_error(404, cowmachine_cowreq:method(Req), Site, Req, Env, Bindings, Context);
         #redirect{ site = Site, location = undefined, is_permanent = IsPermanent } ->
             Metrics = #{
                 site => Site
@@ -270,16 +270,16 @@ execute(Req, Env) ->
     end.
 
 cast_metrics_data(Metrics, Req) ->
-    cowboy_req:cast({set_options, #{ metrics_user_data => Metrics }}, Req).
+    cowmachine_cowreq:set_options(#{ metrics_user_data => Metrics }, Req).
 
 %% @doc Match the host and path to a dispatch rule.
--spec dispatch(cowboy_req:req(), cowboy_middleware:env()) -> dispatch().
+-spec dispatch(cowmachine_cowreq:req(), cowboy_middleware:env()) -> dispatch().
 dispatch(Req, Env) ->
     TempContext = #{ cowreq => Req, cowenv => Env },
     Host = cowmachine_req:host(TempContext),
     Scheme = cowmachine_req:scheme(TempContext),
-    Path = cowboy_req:path(Req),
-    Method = cowboy_req:method(Req),
+    Path = cowmachine_cowreq:path(Req),
+    Method = cowmachine_cowreq:method(Req),
     DispReq = #dispatch{
         host = Host,
         path = Path,
@@ -459,11 +459,11 @@ maybe_flatten([]) -> <<>>.
 
 
 set_server_header(Req) ->
-    cowboy_req:set_resp_header(<<"server">>, cowmachine_response:server_header(), Req).
+    cowmachine_cowreq:set_resp_header(<<"server">>, cowmachine_response:server_header(), Req).
 
 raw_path(Req) ->
-    Path = drop_extra_slashes(cowboy_req:path(Req)),
-    case cowboy_req:qs(Req) of
+    Path = drop_extra_slashes(cowmachine_cowreq:path(Req)),
+    case cowmachine_cowreq:qs(Req) of
         <<>> -> Path;
         Qs -> <<Path/binary, $?, Qs/binary>>
     end.
@@ -476,13 +476,13 @@ drop_extra_slashes(Path) ->
     Path.
 
 redirect(Uri, IsPermanent, Req) ->
-    Req1 = cowboy_req:set_resp_header(<<"location">>, Uri, set_server_header(Req)),
-    {stop, cowboy_req:reply(case IsPermanent of true -> 301; false -> 302 end, Req1)}.
+    Req1 = cowmachine_cowreq:set_resp_header(<<"location">>, Uri, set_server_header(Req)),
+    {stop, cowmachine_cowreq:reply(case IsPermanent of true -> 301; false -> 302 end, Req1)}.
 
 %% ---------------------------------------------------------------------------------------
 
 stop_request(RespCode, Req, Env) ->
-    Method = cowboy_req:method(Req),
+    Method = cowmachine_cowreq:method(Req),
     case ets:lookup(?ETS_HOSTS, '*') of
         [] ->
             handle_error(RespCode, Method, undefined, Req, Env, [], undefined);
@@ -500,9 +500,9 @@ stop_request(RespCode, Req, Env) ->
 handle_error(RespCode, <<"GET">>, undefined, Req, _Env, _Bindings, _Context) ->
     send_static_response(RespCode, Req);
 handle_error(RespCode, _Method, undefined, Req, _Env, _Bindings, _Context) ->
-    {stop, cowboy_req:reply(RespCode, set_server_header(Req))};
+    {stop, cowmachine_cowreq:reply(RespCode, set_server_header(Req))};
 handle_error(_RespCode, <<"CONNECT">>, _Site, Req, _Env, _Bindings, _Context) ->
-    {stop, cowboy_req:reply(400, set_server_header(Req))};
+    {stop, cowmachine_cowreq:reply(400, set_server_header(Req))};
 handle_error(RespCode, Method, Site, Req, Env, Bindings, Context) when Method =:= <<"GET">>; Method =:= <<"POST">> ->
     BindingsMap = maps:from_list(Bindings),
     {ok, Req#{
@@ -516,24 +516,24 @@ handle_error(RespCode, Method, Site, Req, Env, Bindings, Context) when Method =:
         bindings => BindingsMap
     }};
 handle_error(RespCode, _Method, _Site, Req, _Env, _Bindings, _Context) ->
-    {stop, cowboy_req:reply(RespCode, set_server_header(Req))}.
+    {stop, cowmachine_cowreq:reply(RespCode, set_server_header(Req))}.
 
 send_static_response(RespCode, Req) ->
     ErrorFile = filename:join(z_config:get(html_error_path), integer_to_list(RespCode)++".html"),
     case filelib:is_regular(ErrorFile) of
         true ->
             {ok, Html} = file:read_file(ErrorFile),
-            Req1 = cowboy_req:set_resp_header(<<"content-type">>, <<"text/html; charset=utf8">>, Req),
-            Req2 = cowboy_req:set_resp_body(Html, Req1),
-            {stop, cowboy_req:reply(RespCode, set_server_header(Req2))};
+            Req1 = cowmachine_cowreq:set_resp_header(<<"content-type">>, <<"text/html; charset=utf8">>, Req),
+            Req2 = cowmachine_cowreq:set_resp_body(Html, Req1),
+            {stop, cowmachine_cowreq:reply(RespCode, set_server_header(Req2))};
         false ->
-            {stop, cowboy_req:reply(RespCode, set_server_header(Req))}
+            {stop, cowmachine_cowreq:reply(RespCode, set_server_header(Req))}
     end.
 
 %% ---------------------------------------------------------------------------------------
 
 %% Always redirect to https
--spec dispatch_1( #dispatch{}, undefined | cowboy_req:req(), undefined | cowboy_middleware:env() ) -> dispatch().
+-spec dispatch_1( #dispatch{}, undefined | cowmachine_cowreq:req(), undefined | cowboy_middleware:env() ) -> dispatch().
 dispatch_1(#dispatch{ protocol = http, host = Hostname } = DispReq, OptReq, OptEnv) when Hostname =/= undefined ->
     % If we redirect to https, then first check if we also have to change the hostname.
     % Otherwise we might have a mismatch between the certs and the requested hostname.
@@ -571,7 +571,7 @@ dispatch_1(DispReq, OptReq, OptEnv) ->
 
 -spec redirect_to_site_if_running(Dispatch, Req, Env, Site, ExtraBindings) -> dispatch() when
     Dispatch :: #dispatch{},
-    Req :: undefined | cowboy_req:req(),
+    Req :: undefined | cowmachine_cowreq:req(),
     Env :: undefined | cowboy_middleware:env(),
     Site :: atom(),
     ExtraBindings :: proplists:proplist().
@@ -607,7 +607,7 @@ redirect_to_site_if_running(DispReq, OptReq, OptEnv, Site, ExtraBindings) ->
 
 -spec dispatch_site_if_running(Dispatch, Req, Env, Site, ExtraBindings) -> dispatch() when
     Dispatch :: #dispatch{},
-    Req :: undefined | cowboy_req:req(),
+    Req :: undefined | cowmachine_cowreq:req(),
     Env :: undefined | cowboy_middleware:env(),
     Site :: atom(),
     ExtraBindings :: proplists:proplist().

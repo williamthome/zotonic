@@ -338,6 +338,7 @@ default(inet_backlog) -> 500;
 default(inet_acceptor_pool_size) -> 100;
 default(ssl_backlog) -> ?MODULE:get(inet_backlog);
 default(ssl_acceptor_pool_size) -> ?MODULE:get(inet_acceptor_pool_size);
+default(http_server_options) -> #{};
 default(ssl_dhfile) -> undefined;
 default(dbhost) -> "localhost";
 default(dbport) -> 5432;
@@ -449,6 +450,7 @@ all() ->
             inet_acceptor_pool_size,
             ssl_backlog,
             ssl_acceptor_pool_size,
+            http_server_options,
             ssl_dhfile,
             filewatcher_enabled,
             filewatcher_scanner_enabled,

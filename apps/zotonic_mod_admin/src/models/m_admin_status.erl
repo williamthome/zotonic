@@ -221,38 +221,39 @@ m_get_1(_Path, _Msg, _Context) ->
 
 %% @doc Include absent listeners so disabled or missing IPv6 sockets remain visible.
 %% The definitions mirror the HTTP, MQTT and SMTP listener startup configuration.
+%% The HTTP listeners run on cowmachine's server (cowmachine_server), the others
+%% on Ranch.
 -spec listeners() -> [map()].
 listeners() ->
     Definitions = [
-        {zotonic_http_listener_ipv4, <<"HTTP">>, inet, listen_ip, listen_port},
-        {zotonic_http_listener_ipv6, <<"HTTP">>, inet6, listen_ip6, listen_port},
-        {zotonic_https_listener_ipv4, <<"HTTPS">>, inet, listen_ip, ssl_listen_port},
-        {zotonic_https_listener_ipv6, <<"HTTPS">>, inet6, listen_ip6, ssl_listen_port},
-        {zotonic_mqtt_listener_ipv4, <<"MQTT">>, inet, mqtt_listen_ip, mqtt_listen_port},
-        {zotonic_mqtt_listener_ipv6, <<"MQTT">>, inet6, mqtt_listen_ip6, mqtt_listen_port},
-        {zotonic_mqtts_listener_ipv4, <<"MQTT TLS">>, inet, mqtt_listen_ip, mqtt_listen_ssl_port},
-        {zotonic_mqtts_listener_ipv6, <<"MQTT TLS">>, inet6, mqtt_listen_ip6, mqtt_listen_ssl_port},
-        {zotonic_listen_smtp, <<"SMTP">>, inet, smtp_listen_ip, smtp_listen_port}
+        {cowmachine, zotonic_http_listener_ipv4, <<"HTTP">>, inet, listen_ip, listen_port},
+        {cowmachine, zotonic_http_listener_ipv6, <<"HTTP">>, inet6, listen_ip6, listen_port},
+        {cowmachine, zotonic_https_listener_ipv4, <<"HTTPS">>, inet, listen_ip, ssl_listen_port},
+        {cowmachine, zotonic_https_listener_ipv6, <<"HTTPS">>, inet6, listen_ip6, ssl_listen_port},
+        {ranch, zotonic_mqtt_listener_ipv4, <<"MQTT">>, inet, mqtt_listen_ip, mqtt_listen_port},
+        {ranch, zotonic_mqtt_listener_ipv6, <<"MQTT">>, inet6, mqtt_listen_ip6, mqtt_listen_port},
+        {ranch, zotonic_mqtts_listener_ipv4, <<"MQTT TLS">>, inet, mqtt_listen_ip, mqtt_listen_ssl_port},
+        {ranch, zotonic_mqtts_listener_ipv6, <<"MQTT TLS">>, inet6, mqtt_listen_ip6, mqtt_listen_ssl_port},
+        {ranch, zotonic_listen_smtp, <<"SMTP">>, inet, smtp_listen_ip, smtp_listen_port}
     ],
     [listener_status(Definition) || Definition <- Definitions].
 
-listener_status({Ref, Service, Family, IpKey, PortKey}) ->
+listener_status({Server, Ref, Service, Family, IpKey, PortKey}) ->
     IP = z_config:get(IpKey),
     Port = z_config:get(PortKey),
     Base = #{service => Service, family => Family},
-    try ranch:info(Ref) of
-        Info ->
+    try listener_info(Server, Ref) of
+        {ok, Info} ->
             %% Only expose the summary, never raw transport/protocol options.
             Summary = maps:with(
                 [status, port, active_connections, all_connections, max_connections],
-                maps:from_list(Info)),
+                Info),
             maps:merge(Base, Summary#{
-                ip => listener_address(proplists:get_value(ip, Info), Family),
+                %% A server that doesn't report its address has the configured one.
+                ip => listener_address(maps:get(ip, Info, IP), Family),
                 configured => false
-            })
-    catch
-        error:badarg ->
-            %% Ranch raises badarg when the listener is not registered.
+            });
+        {error, not_found} ->
             Status = case IP =:= none orelse Port =:= none of
                 true -> disabled;
                 false -> not_running
@@ -262,10 +263,21 @@ listener_status({Ref, Service, Family, IpKey, PortKey}) ->
                 ip => listener_address(IP, Family),
                 port => listener_port(Port),
                 configured => true
-            };
+            }
+    catch
         _:_ ->
             %% A listener can restart while its counters are being collected.
             Base#{status => unavailable}
+    end.
+
+listener_info(cowmachine, Ref) ->
+    cowmachine_server:info(Ref);
+listener_info(ranch, Ref) ->
+    try ranch:info(Ref) of
+        Info -> {ok, maps:from_list(Info)}
+    catch
+        %% Ranch raises badarg when the listener is not registered.
+        error:badarg -> {error, not_found}
     end.
 
 listener_address(any, inet) -> <<"0.0.0.0">>;

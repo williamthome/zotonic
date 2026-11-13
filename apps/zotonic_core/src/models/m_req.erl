@@ -161,7 +161,7 @@ m_get(_Vs, _Msg, _Context) ->
 
 
 %% @doc Fetch the field from the cowmachine_req interface.
--spec get(atom(), z:context() | cowboy_req:req() | undefined) -> any().
+-spec get(atom(), z:context() | cowmachine_cowreq:req() | undefined) -> any().
 get(undefined, _) -> undefined;
 get(_, undefined) -> undefined;
 get(site, #context{} = Context) -> z_context:site(Context);

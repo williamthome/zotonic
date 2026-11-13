@@ -26,7 +26,7 @@
 ]).
 
 %% @doc Filter the headers and request to prevent excessive data copying.
--spec req_filter(cowboy_req:req()) -> map().
+-spec req_filter(cowmachine_cowreq:req()) -> map().
 req_filter(#{ headers := Headers }=Req) ->
     Headers1 = maps:with([<<"referer">>, <<"user-agent">>], Headers),
     Req1 = maps:with([method, scheme, path, qs, version, peer], Req),
@@ -100,9 +100,9 @@ metrics_callback(#{
         resp_status_category => StatusCategory,
         req_bytes => ReqBodyLength,
         resp_bytes => RespBodyLength,
-        http_version => cowboy_req:version(Req),
-        user_agent => cowboy_req:header(<<"user-agent">>, Req),
-        referer => cowboy_req:header(<<"referer">>, Req),
+        http_version => cowmachine_cowreq:version(Req),
+        user_agent => cowmachine_cowreq:header(<<"user-agent">>, Req),
+        referer => cowmachine_cowreq:header(<<"referer">>, Req),
         metrics => UserData#{ peer_ip => PeerIP }
     },
     ringbuffer:write(queue(StatusCategory), Log1);
